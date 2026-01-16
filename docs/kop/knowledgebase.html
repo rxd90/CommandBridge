@@ -1,22 +1,260 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>KOP Knowledge Base</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KOP Knowledge Base • CommandBridge</title>
   <link rel="stylesheet" href="../theme.css">
+  <style>
+    /* Small KB-only polish to match GitHub-minimal */
+    .kb-search { margin: 10px 0 14px; }
+    .kb-meta { color: var(--muted); font-size: 12px; margin-top: 6px; }
+    .kb-tags { color: var(--muted); font-size: 12px; margin-top: 6px; }
+    .kb-tags code {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      padding: 2px 6px;
+      border-radius: 999px;
+      margin-right: 6px;
+      font-size: 12px;
+      color: var(--text);
+    }
+    details.kb-article {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 12px;
+      box-shadow: var(--shadow);
+    }
+    details.kb-article + details.kb-article { margin-top: 12px; }
+    details.kb-article summary {
+      cursor: pointer;
+      list-style: none;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    details.kb-article summary::-webkit-details-marker { display: none; }
+    .kb-body { margin-top: 10px; color: var(--text); }
+    .kb-body ul { margin: 10px 0 0 18px; color: var(--muted); }
+    .kb-callout {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      font-size: 12px;
+    }
+  </style>
 </head>
 <body>
 
-<h1>Knowledge Base</h1>
+<div class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="../index.html"><span class="brand-badge"></span>CommandBridge</a>
+    <div class="nav-links">
+      <a class="link" href="../incident.html">Incident</a>
+      <a class="link active" href="./knowledgebase.html">KOPs</a>
+      <a class="link" href="../status-pages.html">Status</a>
+      <a class="link" href="../actions.html">Actions</a>
+    </div>
+  </div>
+</div>
 
-<input type="search" placeholder="Search procedures..." style="width: 300px;">
+<div class="container">
+  <div class="header">
+    <div class="kicker">Knowledge Base</div>
+    <h1>KOPs & Troubleshooting</h1>
+    <p class="subhead">
+      Practical runbooks to diagnose and stabilise an identity platform (e.g. ScotAccount-style flows: enrolment, IDV, MFA, and dependency checks).
+    </p>
+  </div>
 
-<p>(Search functionality coming later)</p>
+  <div class="panel">
+    <label for="kbSearch">Search articles</label>
+    <input id="kbSearch" class="kb-search" type="search" placeholder="Try: MFA, SIM swap, document verification, API 5xx, ATO, enrollment..." />
+    <div class="kb-meta">
+      Tip: this is client-side search for now. Later we can load markdown/JSON from the /kop folder and index it.
+    </div>
+  </div>
+
+  <div style="height: 12px;"></div>
+
+  <div id="kbList">
+    <!-- 1 -->
+    <details class="kb-article" data-tags="scotaccount login oidc oauth token jwks">
+      <summary>Login failures: “invalid_token”, “jwks not found”, session loops</summary>
+      <div class="kb-tags">
+        <code>ScotAccount</code><code>OIDC</code><code>Auth</code><code>Tokens</code>
+      </div>
+      <div class="kb-body">
+        Focus: common causes of auth failures during incidents (bad JWKS cache, clock skew, misrouted callbacks).
+        <ul>
+          <li>Check time sync (NTP) across gateway / auth services (clock skew breaks exp/nbf).</li>
+          <li>Validate OIDC discovery + JWKS endpoint availability; confirm key rotation window.</li>
+          <li>Confirm callback URLs and redirect URIs match deployed environment config.</li>
+          <li>Look for caching/CDN rules serving stale discovery/JWKS responses.</li>
+        </ul>
+        <div class="kb-callout">Escalate if: sudden spike in 401/403 across regions + JWKS fetch errors + recent key rotation.</div>
+      </div>
+    </details>
+
+    <!-- 2 -->
+    <details class="kb-article" data-tags="scotaccount mfa sms otp sim swap account takeover">
+      <summary>MFA issues: OTP delays, SIM swap suspicion, push failures</summary>
+      <div class="kb-tags">
+        <code>MFA</code><code>SIM Swap</code><code>ATO</code><code>Fraud</code>
+      </div>
+      <div class="kb-body">
+        Focus: triage when users can’t receive OTP or you suspect telecom fraud patterns.
+        <ul>
+          <li>Check provider delivery metrics + recent route changes (regional carrier outage is common).</li>
+          <li>Look for bursts of OTP requests per user/IP (rate-limit and lockout tuning).</li>
+          <li>Flag possible SIM swap: new device + new IP/ASN + MFA reset attempts.</li>
+          <li>Apply compensating controls: step-up verification or temporary manual review for risk cohort.</li>
+        </ul>
+        <div class="kb-callout">Mitigation idea (demo): enable “Maintenance Mode” for MFA resets only, not full login.</div>
+      </div>
+    </details>
+
+    <!-- 3 -->
+    <details class="kb-article" data-tags="scotaccount idv document verification passport driving license experian">
+      <summary>Document verification failures: passport/DL rejects spike</summary>
+      <div class="kb-tags">
+        <code>IDV</code><code>Documents</code><code>Experian</code><code>Enroll</code>
+      </div>
+      <div class="kb-body">
+        Focus: upstream IDV provider degradation vs. internal regression.
+        <ul>
+          <li>Split failures by doc type, device OS, camera permission, and region.</li>
+          <li>Check provider latency/timeouts and error codes; confirm any active incident on provider side.</li>
+          <li>Verify image upload path (S3 pre-signed URLs / size limits / content-type handling).</li>
+          <li>Confirm no recent WAF rule change blocking uploads (false positives on multipart).</li>
+        </ul>
+        <div class="kb-callout">Escalate if: rejects spike + provider timeouts + retries amplifying cost/latency.</div>
+      </div>
+    </details>
+
+    <!-- 4 -->
+    <details class="kb-article" data-tags="cifas fraud checks risk scoring dependency outage">
+      <summary>Fraud & risk checks (e.g. CIFAS) degraded: what to do safely</summary>
+      <div class="kb-tags">
+        <code>Fraud</code><code>CIFAS</code><code>Risk</code><code>Dependencies</code>
+      </div>
+      <div class="kb-body">
+        Focus: safe degraded-mode operation without silently dropping controls.
+        <ul>
+          <li>Confirm if checks are hard-blocking vs advisory; avoid “fail-open” without approval.</li>
+          <li>Enable “degraded enrollment” path only for low-risk cohorts (policy dependent).</li>
+          <li>Increase manual review queue for flags; log every bypass with correlation IDs.</li>
+          <li>Communicate clearly: what’s impacted, what’s paused, what’s degraded.</li>
+        </ul>
+        <div class="kb-callout">Prefer: fail-closed for high-risk actions (MFA reset, account recovery).</div>
+      </div>
+    </details>
+
+    <!-- 5 -->
+    <details class="kb-article" data-tags="api gateway 5xx latency throttling global outage">
+      <summary>API Gateway: 5xx spike, throttling, latency waterfall</summary>
+      <div class="kb-tags">
+        <code>API</code><code>5xx</code><code>Latency</code><code>Rate-limit</code>
+      </div>
+      <div class="kb-body">
+        Focus: stabilise the edge and stop cascading failures.
+        <ul>
+          <li>Identify top failing routes and downstream dependency correlation (RDS, IDV provider, cache).</li>
+          <li>Apply temporary rate limits / circuit breakers for high-cost endpoints.</li>
+          <li>Check regional imbalance: one region may be hot due to routing/health checks.</li>
+          <li>Confirm retries: client + gateway + service retries can multiply load.</li>
+        </ul>
+        <div class="kb-callout">Use the Status page as the “single truth” for which region is burning.</div>
+      </div>
+    </details>
+
+    <!-- 6 -->
+    <details class="kb-article" data-tags="eks nodes autoscaling cpu memory oom kill pod evictions">
+      <summary>EKS instability: pod evictions, OOM kills, node pressure</summary>
+      <div class="kb-tags">
+        <code>EKS</code><code>K8s</code><code>Scaling</code><code>Stability</code>
+      </div>
+      <div class="kb-body">
+        Focus: fast triage when compute goes unstable mid-incident.
+        <ul>
+          <li>Check node pressure (memory/disk) and recent deploys that changed requests/limits.</li>
+          <li>Look for a single noisy deployment causing cluster-wide churn.</li>
+          <li>Scale out nodes first, then reduce concurrency / background jobs.</li>
+          <li>Validate autoscaler health and IAM permissions (common silent failure).</li>
+        </ul>
+        <div class="kb-callout">Safe mitigation: temporarily disable non-critical cronjobs/consumers.</div>
+      </div>
+    </details>
+
+    <!-- 7 -->
+    <details class="kb-article" data-tags="rds connection storms timeouts pooler">
+      <summary>RDS connection storms: timeouts, pool exhaustion, failover confusion</summary>
+      <div class="kb-tags">
+        <code>RDS</code><code>Database</code><code>Timeouts</code><code>Pools</code>
+      </div>
+      <div class="kb-body">
+        Focus: when everything looks “fine” but apps are timing out.
+        <ul>
+          <li>Check max connections vs pool config; confirm per-service connection limits.</li>
+          <li>Identify runaway query patterns (new index missing, query plan regressions).</li>
+          <li>Ensure apps respect failover endpoints (writer/reader confusion).</li>
+          <li>Reduce concurrency at the edge before scaling DB vertically.</li>
+        </ul>
+        <div class="kb-callout">If you must failover: coordinate comms + freeze deploys + watch retry storms.</div>
+      </div>
+    </details>
+
+    <!-- 8 -->
+    <details class="kb-article" data-tags="incident comms template external stakeholder">
+      <summary>Incident comms: update template (internal + external)</summary>
+      <div class="kb-tags">
+        <code>Comms</code><code>Updates</code><code>Template</code>
+      </div>
+      <div class="kb-body">
+        A consistent update format reduces thrash and helps leadership + support teams.
+        <ul>
+          <li>What happened (1–2 lines), impact, and affected user journeys.</li>
+          <li>Current status by region/service, plus mitigations in progress.</li>
+          <li>Next update time and who owns the bridge.</li>
+          <li>Do/don’t: avoid speculation; confirm before publishing.</li>
+        </ul>
+        <div class="kb-callout">Copy/paste into your incident channel: “Impact / Mitigation / Next update”.</div>
+      </div>
+    </details>
+  </div>
+
+  <div class="footer">Next: we can split articles into individual HTML pages, or load Markdown runbooks from /kop/runbooks/*.md.</div>
+</div>
 
 <script>
+  // Active nav
   const path = location.pathname.split('/').pop();
   document.querySelectorAll('.nav a.link').forEach(a => {
     if (a.getAttribute('href').endsWith(path)) a.classList.add('active');
   });
+
+  // Client-side search (title + tags + body text)
+  const search = document.getElementById('kbSearch');
+  const articles = Array.from(document.querySelectorAll('#kbList details.kb-article'));
+
+  function norm(s){ return (s || '').toLowerCase(); }
+
+  function applyFilter() {
+    const q = norm(search.value).trim();
+    articles.forEach(d => {
+      const title = norm(d.querySelector('summary')?.textContent);
+      const tags = norm(d.getAttribute('data-tags'));
+      const body = norm(d.querySelector('.kb-body')?.textContent);
+      const hit = !q || title.includes(q) || tags.includes(q) || body.includes(q);
+      d.style.display = hit ? '' : 'none';
+    });
+  }
+
+  search.addEventListener('input', applyFilter);
 </script>
+
 </body>
 </html>
