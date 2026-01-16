@@ -1,36 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Create Incident</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create Incident • CommandBridge</title>
+  <link rel="stylesheet" href="theme.css">
 </head>
 <body>
 
-<h1>Create Incident</h1>
+<div class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="./index.html"><span class="brand-badge"></span>CommandBridge</a>
+    <div class="nav-links">
+      <a class="link active" href="./incident.html">Incident</a>
+      <a class="link" href="./kop/knowledgebase.html">KOPs</a>
+      <a class="link" href="./status-pages.html">Status</a>
+      <a class="link" href="./actions.html">Actions</a>
+    </div>
+  </div>
+</div>
 
-<form>
-  <p>
-    <label>Reporter</label><br>
-    <input type="text" placeholder="Name">
-  </p>
+<div class="container">
+  <div class="header">
+    <div class="kicker">Incident Intake</div>
+    <h1>Create Incident</h1>
+    <p class="subhead">Capture a minimal, structured incident record. (Demo form — no backend yet.)</p>
+  </div>
 
-  <p>
-    <label>Priority</label><br>
-    <select>
-      <option>P1 - Critical</option>
-      <option>P2 - High</option>
-      <option>P3 - Medium</option>
-      <option>P4 - Low</option>
-    </select>
-  </p>
+  <div class="panel">
+    <div class="row">
+      <div>
+        <label>Reporter</label>
+        <input type="text" placeholder="e.g. Ricardo Alvarado">
+      </div>
 
-  <p>
-    <label>Subject</label><br>
-    <input type="text" placeholder="Short description">
-  </p>
+      <div>
+        <label>Priority</label>
+        <select>
+          <option>P1 — Critical</option>
+          <option>P2 — High</option>
+          <option selected>P3 — Medium</option>
+          <option>P4 — Low</option>
+        </select>
+      </div>
+    </div>
 
-  <button type="button">Create Incident</button>
-</form>
+    <div style="margin-top:14px;">
+      <label>Subject</label>
+      <input type="text" placeholder="Short incident summary">
+    </div>
 
+    <div class="actions">
+      <button class="btn primary" type="button" onclick="alert('Incident created (demo).')">Create Incident</button>
+      <button class="btn" type="button" onclick="history.back()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="footer">Tip: later we can store these in a JSON file (still static) or wire to an API.</div>
+</div>
+
+<script>
+  const path = location.pathname.split('/').pop();
+  document.querySelectorAll('.nav a.link').forEach(a => {
+    if (a.getAttribute('href').endsWith(path)) a.classList.add('active');
+  });
+</script>
 </body>
 </html>

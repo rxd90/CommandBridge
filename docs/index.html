@@ -1,34 +1,66 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CommandBridge</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="theme.css">
 </head>
 <body>
 
-<h1>CommandBridge</h1>
-
-<div class="grid">
-  <a class="card" href="incident.html">
-    <h3>Incident Report</h3>
-    <p>Create and track incidents</p>
-  </a>
-
-  <a class="card" href="kop/knowledgebase.html">
-    <h3>KOPs</h3>
-    <p>Key Operating Procedures</p>
-  </a>
-
-  <a class="card" href="status-pages.html">
-    <h3>Status Pages</h3>
-    <p>Service health overview</p>
-  </a>
-
-  <a class="card" href="actions.html">
-    <h3>Actions</h3>
-    <p>Operational workflows</p>
-  </a>
+<div class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="./index.html">
+      <span class="brand-badge"></span>
+      CommandBridge
+    </a>
+    <div class="nav-links">
+      <a class="link active" href="./index.html">Home</a>
+      <a class="link" href="./incident.html">Incident</a>
+      <a class="link" href="./kop/knowledgebase.html">KOPs</a>
+      <a class="link" href="./status-pages.html">Status</a>
+      <a class="link" href="./actions.html">Actions</a>
+    </div>
+  </div>
 </div>
 
+<div class="container">
+  <div class="header">
+    <div class="kicker">Ops Console</div>
+    <h1>CommandBridge</h1>
+    <p class="subhead">A lightweight incident bridge for status, procedures, and operational actions. Demo UI for workflows and coordination.</p>
+  </div>
+
+  <div class="grid">
+    <a class="card" href="incident.html">
+      <h3>Incident Report</h3>
+      <p>Create an incident record with priority and ownership.</p>
+    </a>
+
+    <a class="card" href="kop/knowledgebase.html">
+      <h3>KOPs</h3>
+      <p>Search key operating procedures and runbooks.</p>
+    </a>
+
+    <a class="card" href="status-pages.html">
+      <h3>Status Pages</h3>
+      <p>Service health overview across your platform.</p>
+    </a>
+
+    <a class="card" href="actions.html">
+      <h3>Actions</h3>
+      <p>Trigger operational workflows via GitHub Actions.</p>
+    </a>
+  </div>
+
+  <div class="footer">© CommandBridge (demo). No production operations performed.</div>
+</div>
+
+<script>
+  const path = location.pathname.split('/').pop();
+  document.querySelectorAll('.nav a.link').forEach(a => {
+    if (a.getAttribute('href').endsWith(path)) a.classList.add('active');
+  });
+</script>
 </body>
 </html>

@@ -1,22 +1,90 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Status Pages</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Status • CommandBridge</title>
+  <link rel="stylesheet" href="theme.css">
 </head>
 <body>
 
-<h1>Service Status</h1>
+<div class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="./index.html"><span class="brand-badge"></span>CommandBridge</a>
+    <div class="nav-links">
+      <a class="link" href="./incident.html">Incident</a>
+      <a class="link" href="./kop/knowledgebase.html">KOPs</a>
+      <a class="link active" href="./status-pages.html">Status</a>
+      <a class="link" href="./actions.html">Actions</a>
+    </div>
+  </div>
+</div>
 
-<ul>
-  <li class="status-green">API Gateway – Operational</li>
-  <li class="status-green">EKS Cluster – Operational</li>
-  <li class="status-red">ECS Workers – Degraded</li>
-  <li class="status-green">RDS – Operational</li>
-  <li class="status-red">Auth Service – Outage</li>
-</ul>
+<div class="container">
+  <div class="header">
+    <div class="kicker">Global Health</div>
+    <h1>Service Status</h1>
+    <p class="subhead">A deliberately noisy board to emulate a semi-broken multi-region AWS deployment.</p>
+  </div>
 
-<p>(Pretend there are ~30 services)</p>
+  <div class="legend">
+    <span><i class="light good"></i> Operational</span>
+    <span><i class="light warn"></i> Degraded</span>
+    <span><i class="light bad"></i> Outage</span>
+  </div>
 
+  <div class="matrix-wrap">
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th class="region">us-east-1</th>
+          <th class="region">eu-west-1</th>
+          <th class="region">ap-southeast-2</th>
+          <th class="region">sa-east-1</th>
+          <th class="region">global</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="svc">API Gateway</td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light bad"></i></td><td class="region"><i class="light warn"></i></td></tr>
+        <tr><td class="svc">EKS Control Plane</td><td class="region"><i class="light good"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td></tr>
+        <tr><td class="svc">ECS Workers</td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light bad"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td></tr>
+        <tr><td class="svc">Auth / OIDC</td><td class="region"><i class="light bad"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td></tr>
+        <tr><td class="svc">RDS Primary</td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td></tr>
+        <tr><td class="svc">Aurora Replica</td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light bad"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td></tr>
+        <tr><td class="svc">ElastiCache Redis</td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light bad"></i></td><td class="region"><i class="light warn"></i></td></tr>
+        <tr><td class="svc">S3 (Artifacts)</td><td class="region"><i class="light good"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td></tr>
+        <tr><td class="svc">CloudFront</td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td></tr>
+        <tr><td class="svc">WAF</td><td class="region"><i class="light good"></i></td><td class="region"><i class="light bad"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td></tr>
+        <tr><td class="svc">ALB Ingress</td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light bad"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td></tr>
+        <tr><td class="svc">NLB (Edge)</td><td class="region"><i class="light good"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td></tr>
+        <tr><td class="svc">Route 53</td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td></tr>
+        <tr><td class="svc">KMS</td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light bad"></i></td><td class="region"><i class="light warn"></i></td></tr>
+        <tr><td class="svc">Secrets Manager</td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light bad"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td></tr>
+        <tr><td class="svc">SNS / Notifications</td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light bad"></i></td><td class="region"><i class="light warn"></i></td></tr>
+        <tr><td class="svc">SQS</td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td></tr>
+        <tr><td class="svc">Lambda (Workers)</td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light bad"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td></tr>
+        <tr><td class="svc">OpenSearch</td><td class="region"><i class="light bad"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td></tr>
+        <tr><td class="svc">CloudWatch</td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light bad"></i></td><td class="region"><i class="light warn"></i></td></tr>
+        <tr><td class="svc">Grafana</td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td></tr>
+        <tr><td class="svc">Prometheus</td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light bad"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td></tr>
+        <tr><td class="svc">Datadog Forwarder</td><td class="region"><i class="light good"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td></tr>
+        <tr><td class="svc">Kinesis</td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light bad"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td></tr>
+        <tr><td class="svc">ECR</td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td></tr>
+        <tr><td class="svc">CI Runners</td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light bad"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td></tr>
+        <tr><td class="svc">Billing / Cost Anomaly</td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light good"></i></td><td class="region"><i class="light warn"></i></td><td class="region"><i class="light warn"></i></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">Tip: later we can randomise the lights with JS, or render from a JSON “status snapshot”.</div>
+</div>
+
+<script>
+  const path = location.pathname.split('/').pop();
+  document.querySelectorAll('.nav a.link').forEach(a => {
+    if (a.getAttribute('href').endsWith(path)) a.classList.add('active');
+  });
+</script>
 </body>
 </html>

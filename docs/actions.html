@@ -1,34 +1,52 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Actions</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Actions • CommandBridge</title>
+  <link rel="stylesheet" href="theme.css">
 </head>
 <body>
 
-<h1>Operational Actions</h1>
+<div class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="./index.html"><span class="brand-badge"></span>CommandBridge</a>
+    <div class="nav-links">
+      <a class="link" href="./incident.html">Incident</a>
+      <a class="link" href="./kop/knowledgebase.html">KOPs</a>
+      <a class="link" href="./status-pages.html">Status</a>
+      <a class="link active" href="./actions.html">Actions</a>
+    </div>
+  </div>
+</div>
 
-<button onclick="alert('Triggered maintenance workflow')">
-  Enable Maintenance Mode
-</button>
+<div class="container">
+  <div class="header">
+    <div class="kicker">Runbooks</div>
+    <h1>Operational Actions</h1>
+    <p class="subhead">Demo buttons. Today they’re UI-only; next we can wire them to dispatch GitHub workflows.</p>
+  </div>
 
-<br><br>
+  <div class="panel">
+    <div class="actions">
+      <button class="btn primary" onclick="alert('Maintenance mode workflow (demo).')">Enable Maintenance Mode</button>
+      <button class="btn" onclick="alert('Clear cache workflow (demo).')">Clear Cache</button>
+      <button class="btn danger" onclick="alert('Blacklist IP workflow (demo).')">Blacklist IP</button>
+      <button class="btn" onclick="alert('Rotate keys workflow (demo).')">Rotate Secrets</button>
+      <button class="btn" onclick="alert('Failover workflow (demo).')">Initiate Failover</button>
+      <button class="btn" onclick="alert('Scale up workflow (demo).')">Scale Up Service</button>
+    </div>
 
-<button onclick="alert('Triggered cache clear workflow')">
-  Clear Cache
-</button>
+    <div class="footer">Note: For a real demo, we can show a confirmation modal and a “workflow run” link.</div>
+  </div>
+</div>
 
-<br><br>
-
-<button onclick="alert('Triggered IP blacklist workflow')">
-  Blacklist IP
-</button>
-
-<br><br>
-
-<button onclick="alert('Triggered key rotation workflow')">
-  Rotate Secrets
-</button>
-
+<script>
+  const path = location.pathname.split('/').pop();
+  document.querySelectorAll('.nav a.link').forEach(a => {
+    if (a.getAttribute('href').endsWith(path)) a.classList.add('active');
+  });
+</script>
 </body>
 </html>
+
