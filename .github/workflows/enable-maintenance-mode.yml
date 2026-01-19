@@ -1,4 +1,4 @@
-name: Blacklist IP (Simulated)
+name: Enable Maintenance Mode
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ on:
           - staging
           - production
       reason:
-        description: Reason for blacklisting
+        description: Reason for enabling maintenance mode
         required: true
         type: string
       dry_run:
@@ -21,7 +21,7 @@ on:
         type: boolean
         default: true
       target:
-        description: IP or CIDR to blacklist
+        description: Target service or scope (e.g. enrolment-api, edge)
         required: true
         type: string
       ticket:
@@ -30,7 +30,7 @@ on:
         type: string
 
 jobs:
-  blacklist-ip:
+  enable-maintenance:
     runs-on: ubuntu-latest
     steps:
       - name: Validate inputs
@@ -60,10 +60,10 @@ jobs:
           echo "In production, protect the environment and require approvals."
           echo "::endgroup::"
 
-      - name: Simulate IP blacklist
+      - name: Simulate maintenance enablement
         run: |
           echo "::group::Execution"
-          echo "Simulating WAF blacklist update..."
+          echo "Simulating maintenance mode enablement..."
           echo "Target: ${{ inputs.target }}"
           echo "Dry run: ${{ inputs.dry_run }}"
           echo "Reason: ${{ inputs.reason }}"
@@ -74,7 +74,7 @@ jobs:
       - name: Summary
         run: |
           {
-            echo "## Blacklist IP (simulated)"
+            echo "## Enable Maintenance Mode (simulated)"
             echo "- Environment: ${{ inputs.environment }}"
             echo "- Target: ${{ inputs.target }}"
             echo "- Dry run: ${{ inputs.dry_run }}"
