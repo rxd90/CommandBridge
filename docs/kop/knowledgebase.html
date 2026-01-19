@@ -5,58 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>KOP Knowledge Base • CommandBridge</title>
   <link rel="stylesheet" href="../theme.css">
-  <style>
-    /* Small KB-only polish to match GitHub-minimal */
-    .kb-search { margin: 10px 0 14px; }
-    .kb-meta { color: var(--muted); font-size: 12px; margin-top: 6px; }
-    .kb-tags { color: var(--muted); font-size: 12px; margin-top: 6px; }
-    .kb-tags code {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--border);
-      padding: 2px 6px;
-      border-radius: 999px;
-      margin-right: 6px;
-      font-size: 12px;
-      color: var(--text);
-    }
-    details.kb-article {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 12px 12px;
-      box-shadow: var(--shadow);
-    }
-    details.kb-article + details.kb-article { margin-top: 12px; }
-    details.kb-article summary {
-      cursor: pointer;
-      list-style: none;
-      font-weight: 700;
-      font-size: 14px;
-    }
-    details.kb-article summary::-webkit-details-marker { display: none; }
-    .kb-body { margin-top: 10px; color: var(--text); }
-    .kb-body ul { margin: 10px 0 0 18px; color: var(--muted); }
-    .kb-callout {
-      margin-top: 10px;
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.04);
-      color: var(--muted);
-      font-size: 12px;
-    }
-  </style>
 </head>
-<body>
+<body data-page="kop">
 
 <div class="nav">
   <div class="nav-inner">
-    <a class="brand" href="../index.html"><span class="brand-badge"></span>CommandBridge</a>
-    <div class="nav-links">
-      <a class="link" href="../incident.html">Incident</a>
-      <a class="link active" href="./knowledgebase.html">KOPs</a>
-      <a class="link" href="../status-pages.html">Status</a>
-      <a class="link" href="../actions.html">Actions</a>
+    <div class="nav-left">
+      <a class="brand" href="../index.html"><span class="brand-badge"></span>CommandBridge</a>
+      <div class="nav-links">
+        <a class="link" data-page="home" href="../index.html">Home</a>
+        <a class="link" data-page="incident" href="../incident.html">Incident</a>
+        <a class="link" data-page="kop" href="./knowledgebase.html">KOPs</a>
+        <a class="link" data-page="status" href="../status-pages.html">Status</a>
+        <a class="link" data-page="actions" href="../actions.html">Actions</a>
+      </div>
+    </div>
+    <div class="nav-right">
+      <span class="pill warn">Freeze: Partial</span>
     </div>
   </div>
 </div>
@@ -66,13 +31,13 @@
     <div class="kicker">Knowledge Base</div>
     <h1>KOPs & Troubleshooting</h1>
     <p class="subhead">
-      Practical runbooks to diagnose and stabilise an identity platform (e.g. ScotAccount-style flows: enrolment, IDV, MFA, and dependency checks).
+      Practical runbooks to diagnose and stabilise an identity platform (ScotAccount-style flows: enrolment, IDV, MFA, dependency checks).
     </p>
   </div>
 
   <div class="panel">
     <label for="kbSearch">Search articles</label>
-    <input id="kbSearch" class="kb-search" type="search" placeholder="Try: MFA, SIM swap, document verification, API 5xx, ATO, enrollment..." />
+    <input id="kbSearch" class="kb-search" type="search" placeholder="Try: MFA, SIM swap, document verification, API 5xx, ATO, enrolment..." />
     <div class="kb-meta">
       Tip: this is client-side search for now. Later we can load markdown/JSON from the /kop folder and index it.
     </div>
@@ -81,147 +46,332 @@
   <div style="height: 12px;"></div>
 
   <div id="kbList">
-    <!-- 1 -->
-    <details class="kb-article" data-tags="scotaccount login oidc oauth token jwks">
+    <details class="kb-article" data-tags="login oidc oauth jwks token scotaccount auth">
       <summary>Login failures: “invalid_token”, “jwks not found”, session loops</summary>
       <div class="kb-tags">
-        <code>ScotAccount</code><code>OIDC</code><code>Auth</code><code>Tokens</code>
+        <span class="tag">ScotAccount</span><span class="tag">OIDC</span><span class="tag">Auth</span><span class="tag">Tokens</span>
       </div>
+      <div class="kb-meta">Owner: Identity Platform • Last reviewed: 2026-01-08</div>
       <div class="kb-body">
-        Focus: common causes of auth failures during incidents (bad JWKS cache, clock skew, misrouted callbacks).
-        <ul>
-          <li>Check time sync (NTP) across gateway / auth services (clock skew breaks exp/nbf).</li>
-          <li>Validate OIDC discovery + JWKS endpoint availability; confirm key rotation window.</li>
-          <li>Confirm callback URLs and redirect URIs match deployed environment config.</li>
-          <li>Look for caching/CDN rules serving stale discovery/JWKS responses.</li>
-        </ul>
-        <div class="kb-callout">Escalate if: sudden spike in 401/403 across regions + JWKS fetch errors + recent key rotation.</div>
+        <div class="kb-section">
+          <strong>Symptoms</strong>
+          Sudden 401/403 spikes, login loops, JWKS cache misses, or token validation errors.
+        </div>
+        <div class="kb-section">
+          <strong>Checks</strong>
+          <ul>
+            <li>Confirm OIDC discovery + JWKS endpoint availability and cache headers.</li>
+            <li>Validate time sync (NTP) across gateway and auth services.</li>
+            <li>Check recent key rotation or config drift on redirect URIs.</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Mitigations</strong>
+          <ul>
+            <li>Flush JWKS cache in all regions; reduce TTL temporarily.</li>
+            <li>Rollback auth config change if introduced within the last deploy window.</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Escalation</strong>
+          Escalate to IAM/Security if token validation failures exceed 5% in multiple regions.
+        </div>
       </div>
     </details>
 
-    <!-- 2 -->
-    <details class="kb-article" data-tags="scotaccount mfa sms otp sim swap account takeover">
+    <details class="kb-article" data-tags="mfa sms otp sim swap account takeover fraud">
       <summary>MFA issues: OTP delays, SIM swap suspicion, push failures</summary>
       <div class="kb-tags">
-        <code>MFA</code><code>SIM Swap</code><code>ATO</code><code>Fraud</code>
+        <span class="tag">MFA</span><span class="tag">SIM Swap</span><span class="tag">ATO</span><span class="tag">Fraud</span>
       </div>
+      <div class="kb-meta">Owner: Trust & Safety • Last reviewed: 2026-01-05</div>
       <div class="kb-body">
-        Focus: triage when users can’t receive OTP or you suspect telecom fraud patterns.
-        <ul>
-          <li>Check provider delivery metrics + recent route changes (regional carrier outage is common).</li>
-          <li>Look for bursts of OTP requests per user/IP (rate-limit and lockout tuning).</li>
-          <li>Flag possible SIM swap: new device + new IP/ASN + MFA reset attempts.</li>
-          <li>Apply compensating controls: step-up verification or temporary manual review for risk cohort.</li>
-        </ul>
-        <div class="kb-callout">Mitigation idea (demo): enable “Maintenance Mode” for MFA resets only, not full login.</div>
+        <div class="kb-section">
+          <strong>Symptoms</strong>
+          OTP delivery delays, reset abuse, or spikes in MFA failures for a carrier/region.
+        </div>
+        <div class="kb-section">
+          <strong>Checks</strong>
+          <ul>
+            <li>Review MFA provider delivery metrics and carrier status.</li>
+            <li>Check for burst traffic from single ASN/IP ranges.</li>
+            <li>Audit MFA reset logs for device/IP mismatches.</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Mitigations</strong>
+          <ul>
+            <li>Enable step-up verification for resets; throttle retries.</li>
+            <li>Temporarily disable MFA reset for high-risk cohorts.</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Escalation</strong>
+          Escalate if fraud signals spike or SIM swap correlation is confirmed.
+        </div>
       </div>
     </details>
 
-    <!-- 3 -->
-    <details class="kb-article" data-tags="scotaccount idv document verification passport driving license experian">
+    <details class="kb-article" data-tags="idv document verification passport driving license experian">
       <summary>Document verification failures: passport/DL rejects spike</summary>
       <div class="kb-tags">
-        <code>IDV</code><code>Documents</code><code>Experian</code><code>Enroll</code>
+        <span class="tag">IDV</span><span class="tag">Documents</span><span class="tag">Enroll</span><span class="tag">Vendor</span>
       </div>
+      <div class="kb-meta">Owner: Enrollment • Last reviewed: 2026-01-06</div>
       <div class="kb-body">
-        Focus: upstream IDV provider degradation vs. internal regression.
-        <ul>
-          <li>Split failures by doc type, device OS, camera permission, and region.</li>
-          <li>Check provider latency/timeouts and error codes; confirm any active incident on provider side.</li>
-          <li>Verify image upload path (S3 pre-signed URLs / size limits / content-type handling).</li>
-          <li>Confirm no recent WAF rule change blocking uploads (false positives on multipart).</li>
-        </ul>
-        <div class="kb-callout">Escalate if: rejects spike + provider timeouts + retries amplifying cost/latency.</div>
+        <div class="kb-section">
+          <strong>Symptoms</strong>
+          High reject rates for a specific document type or region.
+        </div>
+        <div class="kb-section">
+          <strong>Checks</strong>
+          <ul>
+            <li>Compare failures across OS/device and doc type.</li>
+            <li>Review IDV provider status dashboards and latency spikes.</li>
+            <li>Check upload path (S3 presigned URL size/type limits).</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Mitigations</strong>
+          <ul>
+            <li>Switch to backup IDV provider if configured.</li>
+            <li>Increase retry backoff and communicate guidance to support.</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Escalation</strong>
+          Escalate if reject rate exceeds 25% for all doc types or core regions.
+        </div>
       </div>
     </details>
 
-    <!-- 4 -->
-    <details class="kb-article" data-tags="cifas fraud checks risk scoring dependency outage">
-      <summary>Fraud & risk checks (e.g. CIFAS) degraded: what to do safely</summary>
+    <details class="kb-article" data-tags="fraud risk cifas dependency outage">
+      <summary>Fraud & risk checks degraded (CIFAS/AML dependency)</summary>
       <div class="kb-tags">
-        <code>Fraud</code><code>CIFAS</code><code>Risk</code><code>Dependencies</code>
+        <span class="tag">Fraud</span><span class="tag">CIFAS</span><span class="tag">Risk</span><span class="tag">Dependencies</span>
       </div>
+      <div class="kb-meta">Owner: Risk Ops • Last reviewed: 2026-01-02</div>
       <div class="kb-body">
-        Focus: safe degraded-mode operation without silently dropping controls.
-        <ul>
-          <li>Confirm if checks are hard-blocking vs advisory; avoid “fail-open” without approval.</li>
-          <li>Enable “degraded enrollment” path only for low-risk cohorts (policy dependent).</li>
-          <li>Increase manual review queue for flags; log every bypass with correlation IDs.</li>
-          <li>Communicate clearly: what’s impacted, what’s paused, what’s degraded.</li>
-        </ul>
-        <div class="kb-callout">Prefer: fail-closed for high-risk actions (MFA reset, account recovery).</div>
+        <div class="kb-section">
+          <strong>Symptoms</strong>
+          Risk scores unavailable, AML checks timing out, or elevated fallback usage.
+        </div>
+        <div class="kb-section">
+          <strong>Checks</strong>
+          <ul>
+            <li>Confirm dependency health and network egress.</li>
+            <li>Check rate-limit or quota breaches.</li>
+            <li>Verify fail-open/closed policies for high-risk actions.</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Mitigations</strong>
+          <ul>
+            <li>Enable degraded enrollment for low-risk cohorts only.</li>
+            <li>Increase manual review queue + audit logging.</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Escalation</strong>
+          Escalate if high-risk actions are impacted or fraud indicators rise.
+        </div>
       </div>
     </details>
 
-    <!-- 5 -->
-    <details class="kb-article" data-tags="api gateway 5xx latency throttling global outage">
+    <details class="kb-article" data-tags="api gateway 5xx latency throttling outage">
       <summary>API Gateway: 5xx spike, throttling, latency waterfall</summary>
       <div class="kb-tags">
-        <code>API</code><code>5xx</code><code>Latency</code><code>Rate-limit</code>
+        <span class="tag">API</span><span class="tag">5xx</span><span class="tag">Latency</span><span class="tag">Rate-limit</span>
       </div>
+      <div class="kb-meta">Owner: Platform Ops • Last reviewed: 2026-01-04</div>
       <div class="kb-body">
-        Focus: stabilise the edge and stop cascading failures.
-        <ul>
-          <li>Identify top failing routes and downstream dependency correlation (RDS, IDV provider, cache).</li>
-          <li>Apply temporary rate limits / circuit breakers for high-cost endpoints.</li>
-          <li>Check regional imbalance: one region may be hot due to routing/health checks.</li>
-          <li>Confirm retries: client + gateway + service retries can multiply load.</li>
-        </ul>
-        <div class="kb-callout">Use the Status page as the “single truth” for which region is burning.</div>
+        <div class="kb-section">
+          <strong>Symptoms</strong>
+          Sudden 5xx errors at the edge, escalating retries, or high p95 latency.
+        </div>
+        <div class="kb-section">
+          <strong>Checks</strong>
+          <ul>
+            <li>Identify top failing routes and downstream dependencies.</li>
+            <li>Check client retry storms and circuit breaker settings.</li>
+            <li>Validate regional routing and health checks.</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Mitigations</strong>
+          <ul>
+            <li>Apply temporary rate limits for expensive endpoints.</li>
+            <li>Shift traffic to healthier regions if available.</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Escalation</strong>
+          Escalate if error rates exceed SLO in two or more regions.
+        </div>
       </div>
     </details>
 
-    <!-- 6 -->
-    <details class="kb-article" data-tags="eks nodes autoscaling cpu memory oom kill pod evictions">
+    <details class="kb-article" data-tags="eks k8s autoscaling evictions memory cpu">
       <summary>EKS instability: pod evictions, OOM kills, node pressure</summary>
       <div class="kb-tags">
-        <code>EKS</code><code>K8s</code><code>Scaling</code><code>Stability</code>
+        <span class="tag">EKS</span><span class="tag">Kubernetes</span><span class="tag">Scaling</span><span class="tag">Stability</span>
       </div>
+      <div class="kb-meta">Owner: Platform Engineering • Last reviewed: 2026-01-03</div>
       <div class="kb-body">
-        Focus: fast triage when compute goes unstable mid-incident.
-        <ul>
-          <li>Check node pressure (memory/disk) and recent deploys that changed requests/limits.</li>
-          <li>Look for a single noisy deployment causing cluster-wide churn.</li>
-          <li>Scale out nodes first, then reduce concurrency / background jobs.</li>
-          <li>Validate autoscaler health and IAM permissions (common silent failure).</li>
-        </ul>
-        <div class="kb-callout">Safe mitigation: temporarily disable non-critical cronjobs/consumers.</div>
+        <div class="kb-section">
+          <strong>Symptoms</strong>
+          Frequent evictions, pods restarting, or nodes in NotReady state.
+        </div>
+        <div class="kb-section">
+          <strong>Checks</strong>
+          <ul>
+            <li>Review node pressure (memory/disk) and recent resource limit changes.</li>
+            <li>Identify noisy deployments or runaway jobs.</li>
+            <li>Validate autoscaler permissions and events.</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Mitigations</strong>
+          <ul>
+            <li>Scale out nodes and reduce concurrency for heavy consumers.</li>
+            <li>Pause non-critical cronjobs.</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Escalation</strong>
+          Escalate if cluster health cannot stabilise within 30 minutes.
+        </div>
       </div>
     </details>
 
-    <!-- 7 -->
-    <details class="kb-article" data-tags="rds connection storms timeouts pooler">
+    <details class="kb-article" data-tags="rds database connection storms pool exhaustion">
       <summary>RDS connection storms: timeouts, pool exhaustion, failover confusion</summary>
       <div class="kb-tags">
-        <code>RDS</code><code>Database</code><code>Timeouts</code><code>Pools</code>
+        <span class="tag">RDS</span><span class="tag">Database</span><span class="tag">Timeouts</span><span class="tag">Pools</span>
       </div>
+      <div class="kb-meta">Owner: Data Services • Last reviewed: 2026-01-07</div>
       <div class="kb-body">
-        Focus: when everything looks “fine” but apps are timing out.
-        <ul>
-          <li>Check max connections vs pool config; confirm per-service connection limits.</li>
-          <li>Identify runaway query patterns (new index missing, query plan regressions).</li>
-          <li>Ensure apps respect failover endpoints (writer/reader confusion).</li>
-          <li>Reduce concurrency at the edge before scaling DB vertically.</li>
-        </ul>
-        <div class="kb-callout">If you must failover: coordinate comms + freeze deploys + watch retry storms.</div>
+        <div class="kb-section">
+          <strong>Symptoms</strong>
+          Application timeouts with normal CPU, or sudden connection limit breaches.
+        </div>
+        <div class="kb-section">
+          <strong>Checks</strong>
+          <ul>
+            <li>Verify max connections vs pool configuration per service.</li>
+            <li>Inspect query plan regressions or missing indexes.</li>
+            <li>Confirm reader/writer endpoint usage.</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Mitigations</strong>
+          <ul>
+            <li>Reduce app concurrency and tune pool limits.</li>
+            <li>Scale vertically only after concurrency is controlled.</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Escalation</strong>
+          Escalate if connection storms cause cascading failures in two regions.
+        </div>
       </div>
     </details>
 
-    <!-- 8 -->
-    <details class="kb-article" data-tags="incident comms template external stakeholder">
+    <details class="kb-article" data-tags="incident comms template stakeholder">
       <summary>Incident comms: update template (internal + external)</summary>
       <div class="kb-tags">
-        <code>Comms</code><code>Updates</code><code>Template</code>
+        <span class="tag">Comms</span><span class="tag">Updates</span><span class="tag">Template</span>
       </div>
+      <div class="kb-meta">Owner: Communications • Last reviewed: 2026-01-01</div>
       <div class="kb-body">
-        A consistent update format reduces thrash and helps leadership + support teams.
-        <ul>
-          <li>What happened (1–2 lines), impact, and affected user journeys.</li>
-          <li>Current status by region/service, plus mitigations in progress.</li>
-          <li>Next update time and who owns the bridge.</li>
-          <li>Do/don’t: avoid speculation; confirm before publishing.</li>
-        </ul>
-        <div class="kb-callout">Copy/paste into your incident channel: “Impact / Mitigation / Next update”.</div>
+        <div class="kb-section">
+          <strong>Symptoms</strong>
+          Stakeholders asking for updates, confusion about impact scope.
+        </div>
+        <div class="kb-section">
+          <strong>Checks</strong>
+          <ul>
+            <li>Confirm incident owner + comms cadence on the bridge.</li>
+            <li>Align status page wording with internal summary.</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Mitigations</strong>
+          <ul>
+            <li>Use: Impact → Mitigation → Next update time.</li>
+            <li>Publish clear update windows and owners.</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Escalation</strong>
+          Escalate if public channels require legal/compliance review.
+        </div>
+      </div>
+    </details>
+
+    <details class="kb-article" data-tags="enrolment spikes queue backlog throttling">
+      <summary>Enrolment spikes: queue backlog, throttling, timeouts</summary>
+      <div class="kb-tags">
+        <span class="tag">Enrolment</span><span class="tag">Queues</span><span class="tag">Scaling</span>
+      </div>
+      <div class="kb-meta">Owner: Enrolment • Last reviewed: 2026-01-09</div>
+      <div class="kb-body">
+        <div class="kb-section">
+          <strong>Symptoms</strong>
+          Slow enrolment, queue depth growth, or throttled worker logs.
+        </div>
+        <div class="kb-section">
+          <strong>Checks</strong>
+          <ul>
+            <li>Inspect queue depth and consumer concurrency.</li>
+            <li>Review rate limiting in API gateway for enrolment endpoints.</li>
+            <li>Check downstream dependencies (IDV, email, SMS).</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Mitigations</strong>
+          <ul>
+            <li>Scale worker pools and reduce retries temporarily.</li>
+            <li>Pause low-priority enrolments if needed.</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Escalation</strong>
+          Escalate if backlog continues growing for 30 minutes after scaling.
+        </div>
+      </div>
+    </details>
+
+    <details class="kb-article" data-tags="session cache redis login loops">
+      <summary>Session cache instability: logouts, session loops</summary>
+      <div class="kb-tags">
+        <span class="tag">Sessions</span><span class="tag">Redis</span><span class="tag">Caching</span>
+      </div>
+      <div class="kb-meta">Owner: Identity Platform • Last reviewed: 2026-01-10</div>
+      <div class="kb-body">
+        <div class="kb-section">
+          <strong>Symptoms</strong>
+          Users repeatedly logged out or stuck in session renewal loops.
+        </div>
+        <div class="kb-section">
+          <strong>Checks</strong>
+          <ul>
+            <li>Review Redis cluster health and eviction rates.</li>
+            <li>Check sticky session configuration at the edge.</li>
+            <li>Confirm cache key namespace for recent releases.</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Mitigations</strong>
+          <ul>
+            <li>Increase cache capacity or adjust eviction policy.</li>
+            <li>Invalidate stale session keys for affected cohorts.</li>
+          </ul>
+        </div>
+        <div class="kb-section">
+          <strong>Escalation</strong>
+          Escalate if session churn causes auth saturation across regions.
+        </div>
       </div>
     </details>
   </div>
@@ -230,13 +380,13 @@
 </div>
 
 <script>
-  // Active nav
-  const path = location.pathname.split('/').pop();
-  document.querySelectorAll('.nav a.link').forEach(a => {
-    if (a.getAttribute('href').endsWith(path)) a.classList.add('active');
+  const current = document.body.dataset.page;
+  document.querySelectorAll('.nav a.link').forEach(link => {
+    if (link.dataset.page === current) {
+      link.classList.add('active');
+    }
   });
 
-  // Client-side search (title + tags + body text)
   const search = document.getElementById('kbSearch');
   const articles = Array.from(document.querySelectorAll('#kbList details.kb-article'));
 

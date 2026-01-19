@@ -1,14 +1,83 @@
-name: Enable Maintenance Mode
+name: Clear Cache
 
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+      reason:
+        description: Reason for clearing cache
+        required: true
+        type: string
+      dry_run:
+        description: Dry run (no changes)
+        required: true
+        type: boolean
+        default: true
+      target:
+        description: Cache scope (e.g. redis, jwks, edge-cache)
+        required: true
+        type: string
+      ticket:
+        description: Incident/change ticket (e.g. INC-1234 or CHG-5678)
+        required: true
+        type: string
 
 jobs:
-  maintenance:
+  clear-cache:
     runs-on: ubuntu-latest
     steps:
-      - name: Simulate maintenance mode
+      - name: Validate inputs
+        shell: bash
         run: |
-          echo "Putting site into maintenance mode..."
-          sleep 3
-          echo "Maintenance mode enabled."
+          set -euo pipefail
+          echo "::group::Input validation"
+          if [[ -z "${{ inputs.reason }}" || -z "${{ inputs.target }}" ]]; then
+            echo "reason and target are required."
+            exit 1
+          fi
+          if [[ ! "${{ inputs.ticket }}" =~ ^(INC|CHG)-[0-9]+$ ]]; then
+            echo "ticket must look like INC-1234 or CHG-5678."
+            exit 1
+          fi
+          echo "environment=${{ inputs.environment }}"
+          echo "reason=${{ inputs.reason }}"
+          echo "dry_run=${{ inputs.dry_run }}"
+          echo "target=${{ inputs.target }}"
+          echo "ticket=${{ inputs.ticket }}"
+          echo "::endgroup::"
+
+      - name: Approval gate (placeholder)
+        run: |
+          echo "::group::Approval gate"
+          echo "This is a placeholder for GitHub Environments / required reviewers."
+          echo "In production, protect the environment and require approvals."
+          echo "::endgroup::"
+
+      - name: Simulate cache clear
+        run: |
+          echo "::group::Execution"
+          echo "Simulating cache clear..."
+          echo "Target: ${{ inputs.target }}"
+          echo "Dry run: ${{ inputs.dry_run }}"
+          echo "Reason: ${{ inputs.reason }}"
+          echo "Ticket: ${{ inputs.ticket }}"
+          echo "No real changes are performed."
+          echo "::endgroup::"
+
+      - name: Summary
+        run: |
+          {
+            echo "## Clear Cache (simulated)"
+            echo "- Environment: ${{ inputs.environment }}"
+            echo "- Target: ${{ inputs.target }}"
+            echo "- Dry run: ${{ inputs.dry_run }}"
+            echo "- Ticket: ${{ inputs.ticket }}"
+            echo "- Reason: ${{ inputs.reason }}"
+          } >> "$GITHUB_STEP_SUMMARY"

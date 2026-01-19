@@ -6,20 +6,25 @@
   <title>CommandBridge</title>
   <link rel="stylesheet" href="theme.css">
 </head>
-<body>
+<body data-page="home">
 
 <div class="nav">
   <div class="nav-inner">
-    <a class="brand" href="./index.html">
-      <span class="brand-badge"></span>
-      CommandBridge
-    </a>
-    <div class="nav-links">
-      <a class="link active" href="./index.html">Home</a>
-      <a class="link" href="./incident.html">Incident</a>
-      <a class="link" href="./kop/knowledgebase.html">KOPs</a>
-      <a class="link" href="./status-pages.html">Status</a>
-      <a class="link" href="./actions.html">Actions</a>
+    <div class="nav-left">
+      <a class="brand" href="./index.html">
+        <span class="brand-badge"></span>
+        CommandBridge
+      </a>
+      <div class="nav-links">
+        <a class="link" data-page="home" href="./index.html">Home</a>
+        <a class="link" data-page="incident" href="./incident.html">Incident</a>
+        <a class="link" data-page="kop" href="./kop/knowledgebase.html">KOPs</a>
+        <a class="link" data-page="status" href="./status-pages.html">Status</a>
+        <a class="link" data-page="actions" href="./actions.html">Actions</a>
+      </div>
+    </div>
+    <div class="nav-right">
+      <span class="pill warn">Freeze: Partial</span>
     </div>
   </div>
 </div>
@@ -28,28 +33,32 @@
   <div class="header">
     <div class="kicker">Ops Console</div>
     <h1>CommandBridge</h1>
-    <p class="subhead">A lightweight incident bridge for status, procedures, and operational actions. Demo UI for workflows and coordination.</p>
+    <p class="subhead">A minimal internal developer portal for incident response, status visibility, runbooks, and safe operational actions.</p>
   </div>
 
   <div class="grid">
     <a class="card" href="incident.html">
-      <h3>Incident Report</h3>
-      <p>Create an incident record with priority and ownership.</p>
+      <h3>Incidents</h3>
+      <p>Track active incidents, build comms cadence, and launch new reports.</p>
+      <div class="meta-line">Bridge status • P1 in progress</div>
     </a>
 
     <a class="card" href="kop/knowledgebase.html">
-      <h3>KOPs</h3>
-      <p>Search key operating procedures and runbooks.</p>
+      <h3>KOP Runbooks</h3>
+      <p>Search structured troubleshooting guides for identity, MFA, and enrolment.</p>
+      <div class="meta-line">10 articles • Client-side search</div>
     </a>
 
     <a class="card" href="status-pages.html">
-      <h3>Status Pages</h3>
-      <p>Service health overview across your platform.</p>
+      <h3>Status Wall</h3>
+      <p>Global service matrix with regional signals and category groupings.</p>
+      <div class="meta-line">Noisy multi-region view</div>
     </a>
 
     <a class="card" href="actions.html">
       <h3>Actions</h3>
-      <p>Trigger operational workflows via GitHub Actions.</p>
+      <p>Request demo workflows with risk tagging and audit-friendly inputs.</p>
+      <div class="meta-line">UI only • No live changes</div>
     </a>
   </div>
 
@@ -57,9 +66,11 @@
 </div>
 
 <script>
-  const path = location.pathname.split('/').pop();
-  document.querySelectorAll('.nav a.link').forEach(a => {
-    if (a.getAttribute('href').endsWith(path)) a.classList.add('active');
+  const current = document.body.dataset.page;
+  document.querySelectorAll('.nav a.link').forEach(link => {
+    if (link.dataset.page === current) {
+      link.classList.add('active');
+    }
   });
 </script>
 </body>
