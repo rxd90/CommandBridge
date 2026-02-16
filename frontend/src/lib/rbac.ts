@@ -1,4 +1,4 @@
-import type { User, ActionPermissions } from '../types';
+import type { User, ActionPermissions, KBCategory } from '../types';
 import { config } from '../config';
 import { getAccessToken, getCurrentUser } from './auth';
 
@@ -75,6 +75,7 @@ async function getPermissionsLocal(): Promise<ActionPermissions> {
       risk: a.risk as 'low' | 'medium' | 'high',
       target: a.target as string,
       runbook: a.runbook as string | undefined,
+      category: a.category as KBCategory | undefined,
       permission,
     });
   }

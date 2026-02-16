@@ -145,4 +145,5 @@ class TestGetActionsForRole:
             assert 'name' in action
             assert 'description' in action
             assert 'risk' in action
+            assert 'category' in action
             assert 'permission' in action

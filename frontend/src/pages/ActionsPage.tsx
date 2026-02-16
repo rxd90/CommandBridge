@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Play, Send, Lock, Server, FileText, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { Play, Send, Lock, Server, FileText, X, CheckCircle, AlertCircle, Monitor, HardDrive, Shield } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { StatusTag } from '../components/StatusTag';
 import { Modal } from '../components/Modal';
 import { getPermissions } from '../lib/rbac';
 import { executeAction, requestAction } from '../lib/api';
-import type { Action } from '../types';
+import type { Action, KBCategory } from '../types';
 
 const RISK_COLOUR = {
   low: 'green',
@@ -13,9 +13,24 @@ const RISK_COLOUR = {
   high: 'red',
 } as const;
 
+const CATEGORIES: { key: KBCategory; label: string; icon: typeof Monitor; colour: string }[] = [
+  { key: 'Frontend', label: 'Frontend', icon: Monitor, colour: 'blue' },
+  { key: 'Backend', label: 'Backend', icon: Server, colour: 'purple' },
+  { key: 'Infrastructure', label: 'Infrastructure', icon: HardDrive, colour: 'orange' },
+  { key: 'Security', label: 'Security', icon: Shield, colour: 'red' },
+];
+
+const CATEGORY_COLOUR: Record<string, string> = {
+  Frontend: 'blue',
+  Backend: 'purple',
+  Infrastructure: 'orange',
+  Security: 'red',
+};
+
 export function ActionsPage() {
   const [actions, setActions] = useState<Action[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState<KBCategory | null>(null);
 
   // Modal state
   const [modalAction, setModalAction] = useState<Action | null>(null);
@@ -38,6 +53,10 @@ export function ActionsPage() {
     setTicket('');
     setReason('');
     setResult(null);
+  }, []);
+
+  const handleCategoryClick = useCallback((key: KBCategory) => {
+    setActiveCategory(prev => prev === key ? null : key);
   }, []);
 
   const closeModal = useCallback(() => {
@@ -64,6 +83,10 @@ export function ActionsPage() {
     }
   }, [modalAction, ticket, reason, isRequest]);
 
+  const filteredActions = activeCategory
+    ? actions.filter(a => a.category === activeCategory)
+    : actions;
+
   return (
     <>
       <PageHeader
@@ -72,11 +95,28 @@ export function ActionsPage() {
         subtitle="Pre-approved operational actions. Permissions are enforced server-side based on your role. Every execution is audited."
       />
 
+      <div className="cb_kb-categories">
+        {CATEGORIES.map(({ key, label, icon: Icon, colour }) => (
+          <button
+            key={key}
+            className={`cb_kb-category-chip cb_kb-category-chip--${colour}${activeCategory === key ? ' cb_kb-category-chip--active' : ''}`}
+            onClick={() => handleCategoryClick(key)}
+          >
+            <Icon />
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <p className="cb_loading">Loading actions…</p>
+      ) : filteredActions.length === 0 ? (
+        <div className="cb_kb-empty">
+          <p>No actions found{activeCategory ? ` in ${activeCategory}` : ''}.</p>
+        </div>
       ) : (
         <div className="cb_actions-list">
-          {actions.map((action) => (
+          {filteredActions.map((action) => (
             <div key={action.id} className="cb_action-card">
               <div className="cb_action-card__body">
                 <h3 className="cb_action-card__title">{action.name}</h3>
@@ -85,6 +125,11 @@ export function ActionsPage() {
                   <StatusTag colour={RISK_COLOUR[action.risk]}>
                     {action.risk.charAt(0).toUpperCase() + action.risk.slice(1)} risk
                   </StatusTag>
+                  {action.category && (
+                    <StatusTag colour={CATEGORY_COLOUR[action.category] || 'blue'}>
+                      {action.category}
+                    </StatusTag>
+                  )}
                   <span className="cb_action-card__target"><Server /> {action.target}</span>
                   {action.runbook && (
                     <a href={`/kb/${action.runbook}`} className="cb_action-card__runbook">

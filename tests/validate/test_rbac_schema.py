@@ -49,13 +49,14 @@ ACTIONS_SCHEMA = {
     'patternProperties': {
         '^[a-z][a-z0-9-]+$': {
             'type': 'object',
-            'required': ['name', 'description', 'risk', 'target', 'permissions'],
+            'required': ['name', 'description', 'risk', 'target', 'category', 'permissions'],
             'properties': {
                 'name': {'type': 'string', 'minLength': 1},
                 'description': {'type': 'string', 'minLength': 1},
                 'risk': {'enum': ['low', 'medium', 'high']},
                 'target': {'type': 'string'},
                 'runbook': {'type': 'string'},
+                'category': {'type': 'string', 'enum': ['Frontend', 'Backend', 'Infrastructure', 'Security']},
                 'permissions': {
                     'type': 'object',
                     'patternProperties': {

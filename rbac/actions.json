@@ -5,6 +5,7 @@
     "risk": "low",
     "target": "CloudWatch Log Groups",
     "runbook": "api-gateway-5xx",
+    "category": "Infrastructure",
     "permissions": {
       "L1-operator": { "run": true },
       "L2-engineer": { "run": true },
@@ -17,6 +18,7 @@
     "risk": "medium",
     "target": "ElastiCache Redis + CloudFront CDN",
     "runbook": "session-cache",
+    "category": "Backend",
     "permissions": {
       "L1-operator": { "run": true },
       "L2-engineer": { "run": true, "approve": true },
@@ -29,6 +31,7 @@
     "risk": "medium",
     "target": "EKS Deployments",
     "runbook": "eks-instability",
+    "category": "Infrastructure",
     "permissions": {
       "L1-operator": { "run": true },
       "L2-engineer": { "run": true, "approve": true },
@@ -41,6 +44,7 @@
     "risk": "medium",
     "target": "ECS / EKS Autoscaling",
     "runbook": "enrolment-spikes",
+    "category": "Backend",
     "permissions": {
       "L1-operator": { "run": true },
       "L2-engineer": { "run": true, "approve": true },
@@ -53,6 +57,7 @@
     "risk": "medium",
     "target": "ALB Target Groups",
     "runbook": "api-gateway-5xx",
+    "category": "Infrastructure",
     "permissions": {
       "L1-operator": { "run": true },
       "L2-engineer": { "run": true, "approve": true },
@@ -65,6 +70,7 @@
     "risk": "high",
     "target": "Edge + Enrolment APIs",
     "runbook": "enrolment-spikes",
+    "category": "Backend",
     "permissions": {
       "L1-operator": { "request": true },
       "L2-engineer": { "run": true, "approve": true },
@@ -77,6 +83,7 @@
     "risk": "high",
     "target": "WAF IP Sets",
     "runbook": "fraud-risk-checks",
+    "category": "Backend",
     "permissions": {
       "L1-operator": { "request": true },
       "L2-engineer": { "run": true, "approve": true },
@@ -89,6 +96,7 @@
     "risk": "high",
     "target": "Route 53 + RDS",
     "runbook": "rds-connection-storms",
+    "category": "Infrastructure",
     "permissions": {
       "L1-operator": { "request": true },
       "L2-engineer": { "run": true, "approve": true },
@@ -101,6 +109,7 @@
     "risk": "high",
     "target": "Enrolment API",
     "runbook": "enrolment-spikes",
+    "category": "Backend",
     "permissions": {
       "L1-operator": { "request": true },
       "L2-engineer": { "run": true, "approve": true },
@@ -113,6 +122,7 @@
     "risk": "high",
     "target": "Secrets Manager",
     "runbook": "login-failures",
+    "category": "Backend",
     "permissions": {
       "L1-operator": { "request": true },
       "L2-engineer": { "request": true },

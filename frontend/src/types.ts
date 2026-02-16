@@ -20,6 +20,7 @@ export interface Action {
   risk: 'low' | 'medium' | 'high';
   target: string;
   runbook?: string;
+  category?: KBCategory;
   permission: 'run' | 'request' | 'locked';
 }
 
