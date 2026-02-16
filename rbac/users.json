@@ -1,0 +1,36 @@
+{
+  "users": [
+    {
+      "id": "alice",
+      "name": "Alice McGregor",
+      "email": "alice.mcgregor@scotgov.uk",
+      "role": "L1-operator",
+      "team": "L1 Support",
+      "active": true
+    },
+    {
+      "id": "bob",
+      "name": "Bob Fraser",
+      "email": "bob.fraser@scotgov.uk",
+      "role": "L1-operator",
+      "team": "L1 Support",
+      "active": true
+    },
+    {
+      "id": "carol",
+      "name": "Carol Stewart",
+      "email": "carol.stewart@scotgov.uk",
+      "role": "L2-engineer",
+      "team": "Identity Platform",
+      "active": true
+    },
+    {
+      "id": "ricardo",
+      "name": "Ricardo Alvarado",
+      "email": "ricardo@scoven.co.uk",
+      "role": "L3-admin",
+      "team": "Platform Engineering",
+      "active": true
+    }
+  ]
+}

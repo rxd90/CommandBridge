@@ -24,3 +24,16 @@ node_modules/
 dist/
 build/
 .build/
+
+# Build output
+site/
+
+# Lambda packages
+*.zip
+
+# Test artifacts
+lambdas/rbac/
+
+# Environment
+.env
+.env.*

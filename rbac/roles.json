@@ -1,0 +1,14 @@
+{
+  "L1-operator": {
+    "description": "L1 Support — pre-approved safe operations, can request high-risk",
+    "level": 1
+  },
+  "L2-engineer": {
+    "description": "L2 Engineering — full operational access, can approve L1 requests",
+    "level": 2
+  },
+  "L3-admin": {
+    "description": "L3 Platform — unrestricted, manages portal config",
+    "level": 3
+  }
+}

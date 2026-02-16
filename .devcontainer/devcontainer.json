@@ -1,0 +1,26 @@
+{
+  "name": "SGX",
+  "build": {
+    "context": ".",
+    "dockerfile": "Dockerfile"
+  },
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.aws,target=/home/ubuntu/.aws,type=bind,consistency=cached",
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude,target=/home/ubuntu/.claude-host,type=bind,consistency=cached"
+  ],
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+  "remoteUser": "ubuntu",
+  "containerEnv": {
+    "AWS_SDK_LOAD_CONFIG": "1"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Anthropic.claude-code"
+      ]
+    }
+  }
+}

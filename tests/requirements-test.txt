@@ -1,0 +1,4 @@
+pytest>=8.0
+moto[dynamodb,logs,wafv2,secretsmanager,ecs,ssm,route53,cloudfront,elbv2]>=5.0
+jsonschema>=4.20
+pyyaml>=6.0

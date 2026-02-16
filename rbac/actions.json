@@ -1,0 +1,122 @@
+{
+  "pull-logs": {
+    "name": "Pull CloudWatch Logs",
+    "description": "Stream and filter CloudWatch log groups for a service or time range.",
+    "risk": "low",
+    "target": "CloudWatch Log Groups",
+    "runbook": "api-gateway-5xx",
+    "permissions": {
+      "L1-operator": { "run": true },
+      "L2-engineer": { "run": true },
+      "L3-admin": "*"
+    }
+  },
+  "purge-cache": {
+    "name": "Purge Cache",
+    "description": "Flush ElastiCache Redis cluster and invalidate CloudFront distributions.",
+    "risk": "medium",
+    "target": "ElastiCache Redis + CloudFront CDN",
+    "runbook": "session-cache",
+    "permissions": {
+      "L1-operator": { "run": true },
+      "L2-engineer": { "run": true, "approve": true },
+      "L3-admin": "*"
+    }
+  },
+  "restart-pods": {
+    "name": "Restart EKS Pods",
+    "description": "Rolling restart of a Kubernetes deployment via SSM RunCommand.",
+    "risk": "medium",
+    "target": "EKS Deployments",
+    "runbook": "eks-instability",
+    "permissions": {
+      "L1-operator": { "run": true },
+      "L2-engineer": { "run": true, "approve": true },
+      "L3-admin": "*"
+    }
+  },
+  "scale-service": {
+    "name": "Scale Service",
+    "description": "Adjust ECS desired count or EKS HPA min/max replicas.",
+    "risk": "medium",
+    "target": "ECS / EKS Autoscaling",
+    "runbook": "enrolment-spikes",
+    "permissions": {
+      "L1-operator": { "run": true },
+      "L2-engineer": { "run": true, "approve": true },
+      "L3-admin": "*"
+    }
+  },
+  "drain-traffic": {
+    "name": "Drain Traffic",
+    "description": "Deregister targets from ALB target group to drain traffic from a faulty AZ.",
+    "risk": "medium",
+    "target": "ALB Target Groups",
+    "runbook": "api-gateway-5xx",
+    "permissions": {
+      "L1-operator": { "run": true },
+      "L2-engineer": { "run": true, "approve": true },
+      "L3-admin": "*"
+    }
+  },
+  "maintenance-mode": {
+    "name": "Enable Maintenance Mode",
+    "description": "Toggle AppConfig feature flag to pause public enrolment flows while keeping admin access.",
+    "risk": "high",
+    "target": "Edge + Enrolment APIs",
+    "runbook": "enrolment-spikes",
+    "permissions": {
+      "L1-operator": { "request": true },
+      "L2-engineer": { "run": true, "approve": true },
+      "L3-admin": "*"
+    }
+  },
+  "blacklist-ip": {
+    "name": "Blacklist IP",
+    "description": "Add IP ranges to WAF IP set to block abusive traffic at the edge.",
+    "risk": "high",
+    "target": "WAF IP Sets",
+    "runbook": "fraud-risk-checks",
+    "permissions": {
+      "L1-operator": { "request": true },
+      "L2-engineer": { "run": true, "approve": true },
+      "L3-admin": "*"
+    }
+  },
+  "failover-region": {
+    "name": "Failover Region",
+    "description": "Override Route 53 health checks and trigger RDS failover to shift traffic from a degraded region.",
+    "risk": "high",
+    "target": "Route 53 + RDS",
+    "runbook": "rds-connection-storms",
+    "permissions": {
+      "L1-operator": { "request": true },
+      "L2-engineer": { "run": true, "approve": true },
+      "L3-admin": "*"
+    }
+  },
+  "pause-enrolments": {
+    "name": "Pause Enrolments",
+    "description": "Temporarily block new account creation while allowing existing user login.",
+    "risk": "high",
+    "target": "Enrolment API",
+    "runbook": "enrolment-spikes",
+    "permissions": {
+      "L1-operator": { "request": true },
+      "L2-engineer": { "run": true, "approve": true },
+      "L3-admin": "*"
+    }
+  },
+  "rotate-secrets": {
+    "name": "Rotate Secrets",
+    "description": "Trigger staged credential rotation via Secrets Manager for service-to-service auth.",
+    "risk": "high",
+    "target": "Secrets Manager",
+    "runbook": "login-failures",
+    "permissions": {
+      "L1-operator": { "request": true },
+      "L2-engineer": { "request": true },
+      "L3-admin": "*"
+    }
+  }
+}
