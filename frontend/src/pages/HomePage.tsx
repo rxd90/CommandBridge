@@ -21,16 +21,16 @@ export function HomePage() {
 
         <Link to="/status" className="cb_dashboard-card">
           <div className="cb_dashboard-card__icon"><Activity /></div>
-          <h3>Status Wall</h3>
-          <p>Multi-region service health matrix across networking, compute, data, and security.</p>
-          <span className="cb_dashboard-card__meta">6 regions &bull; 24 services</span>
+          <h3>Service Status</h3>
+          <p>ScotAccount service health across identity, compute, data, and security.</p>
+          <span className="cb_dashboard-card__meta">eu-west-2 &bull; 17 services</span>
         </Link>
 
         <Link to="/actions" className="cb_dashboard-card">
           <div className="cb_dashboard-card__icon"><Zap /></div>
           <h3>Actions</h3>
           <p>Pre-approved operational actions with role-based access, risk tagging, and audit trail.</p>
-          <span className="cb_dashboard-card__meta">RBAC-enforced &bull; 10 actions</span>
+          <span className="cb_dashboard-card__meta">RBAC-enforced &bull; 15 actions</span>
         </Link>
       </div>
     </>

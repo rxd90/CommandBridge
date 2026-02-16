@@ -41,7 +41,7 @@ print_info() {
 # ============================================
 # Build React Frontend
 # ============================================
-echo -e "${BLUE}[1/5] Building React frontend...${NC}"
+echo -e "${BLUE}[1/6] Building React frontend...${NC}"
 
 if [ ! -d "$FRONTEND_DIR/node_modules" ]; then
     print_info "Installing dependencies..."
@@ -62,7 +62,7 @@ echo ""
 # ============================================
 # Package Lambda
 # ============================================
-echo -e "${BLUE}[2/5] Packaging Lambda function...${NC}"
+echo -e "${BLUE}[2/6] Packaging Lambda function...${NC}"
 
 LAMBDA_ZIP="$INFRA_DIR/modules/lambdas/placeholder.zip"
 TEMP_DIR=$(mktemp -d)
@@ -85,7 +85,7 @@ echo ""
 # ============================================
 # Terraform Apply
 # ============================================
-echo -e "${BLUE}[3/5] Applying Terraform changes...${NC}"
+echo -e "${BLUE}[3/6] Applying Terraform changes...${NC}"
 
 print_info "Initialising Terraform..."
 terraform -chdir="$INFRA_DIR" init -input=false > /dev/null 2>&1 || {
@@ -102,9 +102,26 @@ print_status "Infrastructure updated (Cognito, Lambda, API Gateway, DynamoDB, Cl
 echo ""
 
 # ============================================
+# Seed DynamoDB Users Table
+# ============================================
+echo -e "${BLUE}[4/6] Seeding users table...${NC}"
+
+USERS_TABLE=$(terraform -chdir="$INFRA_DIR" output -raw users_table_name 2>/dev/null || echo "")
+if [ -n "$USERS_TABLE" ]; then
+    python3 "$ROOT_DIR/scripts/seed_users.py" --table "$USERS_TABLE" --region "$AWS_REGION" --users-file "$ROOT_DIR/rbac/users.json" || {
+        print_error "Users seed failed"
+        exit 1
+    }
+    print_status "Users table seeded"
+else
+    print_info "No users table found, skipping seed"
+fi
+echo ""
+
+# ============================================
 # Deploy Portal to S3
 # ============================================
-echo -e "${BLUE}[4/5] Deploying portal to S3...${NC}"
+echo -e "${BLUE}[5/6] Deploying portal to S3...${NC}"
 
 BUCKET=$(terraform -chdir="$INFRA_DIR" output -raw s3_bucket 2>/dev/null || echo "")
 CLOUDFRONT_DIST=$(terraform -chdir="$INFRA_DIR" output -raw cloudfront_distribution_id 2>/dev/null || echo "")
@@ -140,7 +157,7 @@ echo ""
 # ============================================
 # Invalidate CloudFront
 # ============================================
-echo -e "${BLUE}[5/5] Invalidating CloudFront cache...${NC}"
+echo -e "${BLUE}[6/6] Invalidating CloudFront cache...${NC}"
 
 if [ -n "$CLOUDFRONT_DIST" ]; then
     aws cloudfront create-invalidation \

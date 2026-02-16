@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Activity, Zap, LogOut } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Activity, Zap, FileText, Shield, LogOut } from 'lucide-react';
 import { SiteHeader } from './SiteHeader';
 import { useAuth } from '../hooks/useAuth';
 import { useRbac } from '../hooks/useRbac';
@@ -41,6 +41,20 @@ export function Layout() {
                 `cb_nav__link${isActive ? ' cb_nav__link--active' : ''}`
               }><Zap /> Actions</NavLink>
             </li>
+            {(role === 'L2-engineer' || role === 'L3-admin') && (
+              <li className="cb_nav__item">
+                <NavLink to="/audit" className={({ isActive }) =>
+                  `cb_nav__link${isActive ? ' cb_nav__link--active' : ''}`
+                }><FileText /> Audit</NavLink>
+              </li>
+            )}
+            {role === 'L3-admin' && (
+              <li className="cb_nav__item">
+                <NavLink to="/admin" className={({ isActive }) =>
+                  `cb_nav__link${isActive ? ' cb_nav__link--active' : ''}`
+                }><Shield /> Admin</NavLink>
+              </li>
+            )}
           </ul>
 
           {user && (

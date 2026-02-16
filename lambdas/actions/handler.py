@@ -8,6 +8,7 @@ import json
 import os
 import sys
 import re
+from urllib.parse import unquote
 
 # Add parent dir to path for shared modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -15,6 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from shared.rbac import check_permission, get_actions_for_role
 from shared.audit import log_action
 from shared import kb
+from shared.users import get_user_role, list_users, update_user, get_user, VALID_ROLES
 
 
 def lambda_handler(event, context):
@@ -22,22 +24,25 @@ def lambda_handler(event, context):
     path = event.get('rawPath', '')
     method = event.get('requestContext', {}).get('http', {}).get('method', 'GET')
 
-    # Extract user info from JWT claims (passed by API GW authorizer)
+    # Extract user identity from JWT claims (Cognito = auth only)
+    # ID tokens have 'email'; access tokens have 'username' (which is the email
+    # since the pool uses email as username). Fall back through both.
     claims = event.get('requestContext', {}).get('authorizer', {}).get('jwt', {}).get('claims', {})
-    user_email = claims.get('email', claims.get('cognito:username', 'unknown'))
-    user_groups = claims.get('cognito:groups', [])
+    user_email = claims.get('email') or claims.get('username') or claims.get('cognito:username', 'unknown')
 
-    # cognito:groups may come as:
-    # - a list: ['L3-admin']
-    # - a string: 'L3-admin'
-    # - a bracket-wrapped string from API GW: '[L3-admin]'
-    if isinstance(user_groups, str):
-        # API Gateway JWT authorizer may pass groups as "[L3-admin]" string
-        if user_groups.startswith('[') and user_groups.endswith(']'):
-            user_groups = [g.strip().strip('"').strip("'")
-                          for g in user_groups[1:-1].split(',') if g.strip()]
-        else:
-            user_groups = [user_groups]
+    # Resolve role from DynamoDB (source of truth for authorization)
+    db_role = get_user_role(user_email)
+    if db_role:
+        user_groups = [db_role]
+    else:
+        # Fallback to JWT cognito:groups for graceful migration
+        user_groups = claims.get('cognito:groups', [])
+        if isinstance(user_groups, str):
+            if user_groups.startswith('[') and user_groups.endswith(']'):
+                user_groups = [g.strip().strip('"').strip("'")
+                              for g in user_groups[1:-1].split(',') if g.strip()]
+            else:
+                user_groups = [user_groups]
 
     if path == '/actions/permissions' and method == 'GET':
         return _handle_permissions(user_groups)
@@ -46,7 +51,7 @@ def lambda_handler(event, context):
     elif path == '/actions/request' and method == 'POST':
         return _handle_request(event, user_email, user_groups)
     elif path == '/actions/audit' and method == 'GET':
-        return _handle_audit(user_email, user_groups)
+        return _handle_audit(event, user_email, user_groups)
 
     # KB routes
     elif path == '/kb' and method == 'GET':
@@ -68,6 +73,19 @@ def lambda_handler(event, context):
     elif re.match(r'^/kb/[^/]+$', path) and method == 'DELETE':
         article_id = path.split('/')[2]
         return _handle_kb_delete(article_id, user_email, user_groups)
+
+    # Admin routes
+    elif path == '/admin/users' and method == 'GET':
+        return _handle_admin_list_users(user_email, user_groups)
+    elif re.match(r'^/admin/users/[^/]+/disable$', path) and method == 'POST':
+        target_email = unquote(path.split('/')[3])
+        return _handle_admin_disable_user(target_email, user_email, user_groups)
+    elif re.match(r'^/admin/users/[^/]+/enable$', path) and method == 'POST':
+        target_email = unquote(path.split('/')[3])
+        return _handle_admin_enable_user(target_email, user_email, user_groups)
+    elif re.match(r'^/admin/users/[^/]+/role$', path) and method == 'POST':
+        target_email = unquote(path.split('/')[3])
+        return _handle_admin_set_role(event, target_email, user_email, user_groups)
 
     else:
         return _response(404, {'message': 'Not found'})
@@ -137,6 +155,10 @@ def _handle_request(event, user_email, user_groups):
     if not action_id or not ticket or not reason:
         return _response(400, {'message': 'action, ticket, and reason are required'})
 
+    # Validate ticket format
+    if not re.match(r'^(INC|CHG)-[\w-]+$', ticket):
+        return _response(400, {'message': 'ticket must match format INC-XXXX or CHG-XXXX'})
+
     perm = check_permission(user_groups, action_id, 'run')
     if not perm['allowed']:
         return _response(403, {'message': perm.get('reason', 'Not permitted')})
@@ -150,13 +172,24 @@ def _handle_request(event, user_email, user_groups):
     })
 
 
-def _handle_audit(user_email, user_groups):
-    """GET /actions/audit — return recent audit entries."""
-    # For now return a placeholder; full implementation queries DynamoDB
-    return _response(200, {
-        'message': 'Audit log endpoint. Full implementation queries DynamoDB.',
-        'entries': []
-    })
+def _handle_audit(event, user_email, user_groups):
+    """GET /actions/audit — return recent audit entries from DynamoDB."""
+    from shared.audit import query_by_user, query_by_action, list_recent
+
+    params = event.get('queryStringParameters') or {}
+    limit = min(int(params.get('limit', 50)), 200)
+    cursor = params.get('cursor')
+    user_filter = params.get('user')
+    action_filter = params.get('action')
+
+    if user_filter:
+        result = query_by_user(user_filter, limit, cursor)
+    elif action_filter:
+        result = query_by_action(action_filter, limit, cursor)
+    else:
+        result = list_recent(limit, cursor)
+
+    return _response(200, result)
 
 
 # ── KB RBAC helpers ──────────────────────────────────────────────────
@@ -292,6 +325,77 @@ def _handle_kb_delete(article_id, user_email, user_groups):
     log_action(user_email, 'kb-delete', article_id, '', 'success',
                details={'title': article['title']})
     return _response(200, {'message': f'Article {article_id} deleted'})
+
+
+# ── Admin route handlers ─────────────────────────────────────────────
+
+def _is_admin(user_groups):
+    """Check if user has L3 admin access."""
+    return 'L3-admin' in user_groups
+
+
+def _handle_admin_list_users(user_email, user_groups):
+    """GET /admin/users — list all users from DynamoDB."""
+    if not _is_admin(user_groups):
+        return _response(403, {'message': 'L3 admin access required'})
+
+    users = list_users()
+    return _response(200, {'users': users})
+
+
+def _handle_admin_disable_user(target_email, user_email, user_groups):
+    """POST /admin/users/{email}/disable — disable a user."""
+    if not _is_admin(user_groups):
+        return _response(403, {'message': 'L3 admin access required'})
+
+    if target_email == user_email:
+        return _response(400, {'message': 'Cannot disable your own account'})
+
+    user = get_user(target_email)
+    if not user:
+        return _response(404, {'message': 'User not found'})
+
+    update_user(target_email, {'active': False}, user_email)
+    log_action(user_email, 'admin-disable-user', target_email, '', 'success')
+    return _response(200, {'message': f'User {target_email} disabled'})
+
+
+def _handle_admin_enable_user(target_email, user_email, user_groups):
+    """POST /admin/users/{email}/enable — enable a user."""
+    if not _is_admin(user_groups):
+        return _response(403, {'message': 'L3 admin access required'})
+
+    user = get_user(target_email)
+    if not user:
+        return _response(404, {'message': 'User not found'})
+
+    update_user(target_email, {'active': True}, user_email)
+    log_action(user_email, 'admin-enable-user', target_email, '', 'success')
+    return _response(200, {'message': f'User {target_email} enabled'})
+
+
+def _handle_admin_set_role(event, target_email, user_email, user_groups):
+    """POST /admin/users/{email}/role — change a user's role."""
+    if not _is_admin(user_groups):
+        return _response(403, {'message': 'L3 admin access required'})
+
+    body = _parse_body(event)
+    if not body or 'role' not in body:
+        return _response(400, {'message': 'role is required in request body'})
+
+    new_role = body['role']
+    if new_role not in VALID_ROLES:
+        return _response(400, {'message': f'Invalid role. Must be one of: {", ".join(sorted(VALID_ROLES))}'})
+
+    user = get_user(target_email)
+    if not user:
+        return _response(404, {'message': 'User not found'})
+
+    old_role = user.get('role', 'unknown')
+    update_user(target_email, {'role': new_role}, user_email)
+    log_action(user_email, 'admin-set-role', target_email, '', 'success',
+               details={'old_role': old_role, 'new_role': new_role})
+    return _response(200, {'message': f'User {target_email} role changed to {new_role}'})
 
 
 def _get_executor(action_id):

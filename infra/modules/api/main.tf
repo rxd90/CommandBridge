@@ -11,7 +11,7 @@ resource "aws_apigatewayv2_api" "main" {
   protocol_type = "HTTP"
 
   cors_configuration {
-    allow_origins = ["*"]
+    allow_origins = ["https://d2ej3zpo2eta45.cloudfront.net", "http://localhost:5173"]
     allow_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     allow_headers = ["Authorization", "Content-Type"]
     max_age       = 86400
@@ -127,6 +127,39 @@ resource "aws_apigatewayv2_route" "kb_update" {
 resource "aws_apigatewayv2_route" "kb_delete" {
   api_id             = aws_apigatewayv2_api.main.id
   route_key          = "DELETE /kb/{id}"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+
+# Admin Routes (L3-only, enforced in Lambda)
+resource "aws_apigatewayv2_route" "admin_list_users" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "GET /admin/users"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+
+resource "aws_apigatewayv2_route" "admin_disable_user" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "POST /admin/users/{email}/disable"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+
+resource "aws_apigatewayv2_route" "admin_enable_user" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "POST /admin/users/{email}/enable"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+
+resource "aws_apigatewayv2_route" "admin_set_role" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "POST /admin/users/{email}/role"
   target             = "integrations/${aws_apigatewayv2_integration.lambda.id}"
   authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
   authorization_type = "JWT"

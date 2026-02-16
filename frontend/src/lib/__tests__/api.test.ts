@@ -68,14 +68,18 @@ describe('KB API — localDev mode', () => {
 
     it('search is case-insensitive', async () => {
       const result = await listKBArticles({ search: 'MFA' });
-      expect(result.articles.length).toBe(1);
-      expect(result.articles[0].id).toBe('mfa-issues');
+      expect(result.articles.length).toBe(2);
+      const ids = result.articles.map(a => a.id);
+      expect(ids).toContain('mfa-issues');
+      expect(ids).toContain('2fa-sms-delivery');
     });
 
     it('can search by service name', async () => {
       const result = await listKBArticles({ search: 'Document Verification' });
-      expect(result.articles.length).toBe(1);
-      expect(result.articles[0].id).toBe('idv-failures');
+      expect(result.articles.length).toBe(2);
+      const ids = result.articles.map(a => a.id);
+      expect(ids).toContain('idv-failures');
+      expect(ids).toContain('idv-provider-failover');
     });
   });
 

@@ -36,7 +36,7 @@ PERMISSION_VALUE_SCHEMA = {
             'properties': {
                 'run': {'type': 'boolean'},
                 'request': {'type': 'boolean'},
-                'approve': {'type': 'boolean'},
+                'approve': {'type': 'boolean'},  # Reserved for future approval workflow
             },
             'additionalProperties': False,
         },
@@ -49,14 +49,19 @@ ACTIONS_SCHEMA = {
     'patternProperties': {
         '^[a-z][a-z0-9-]+$': {
             'type': 'object',
-            'required': ['name', 'description', 'risk', 'target', 'category', 'permissions'],
+            'required': ['name', 'description', 'risk', 'target', 'categories', 'permissions'],
             'properties': {
                 'name': {'type': 'string', 'minLength': 1},
                 'description': {'type': 'string', 'minLength': 1},
                 'risk': {'enum': ['low', 'medium', 'high']},
                 'target': {'type': 'string'},
                 'runbook': {'type': 'string'},
-                'category': {'type': 'string', 'enum': ['Frontend', 'Backend', 'Infrastructure', 'Security']},
+                'categories': {
+                    'type': 'array',
+                    'minItems': 1,
+                    'items': {'type': 'string', 'enum': ['Frontend', 'Backend', 'Infrastructure', 'Security']},
+                    'uniqueItems': True,
+                },
                 'permissions': {
                     'type': 'object',
                     'patternProperties': {
@@ -113,8 +118,8 @@ class TestActionsSchema:
     def test_actions_valid(self, rbac_actions):
         jsonschema.validate(rbac_actions, ACTIONS_SCHEMA)
 
-    def test_has_ten_actions(self, rbac_actions):
-        assert len(rbac_actions) == 10
+    def test_has_fifteen_actions(self, rbac_actions):
+        assert len(rbac_actions) == 15
 
     def test_action_ids_are_lowercase_hyphenated(self, rbac_actions):
         import re

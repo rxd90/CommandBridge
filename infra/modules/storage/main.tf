@@ -118,10 +118,38 @@ output "audit_table_arn" {
   value = aws_dynamodb_table.audit.arn
 }
 
+resource "aws_dynamodb_table" "users" {
+  name         = "${var.project_name}-${var.environment}-users"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "email"
+
+  attribute {
+    name = "email"
+    type = "S"
+  }
+
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  tags = {
+    Name    = "CommandBridge Users"
+    Purpose = "CommandBridge user roles and metadata"
+  }
+}
+
 output "kb_table_name" {
   value = aws_dynamodb_table.kb.name
 }
 
 output "kb_table_arn" {
   value = aws_dynamodb_table.kb.arn
+}
+
+output "users_table_name" {
+  value = aws_dynamodb_table.users.name
+}
+
+output "users_table_arn" {
+  value = aws_dynamodb_table.users.arn
 }

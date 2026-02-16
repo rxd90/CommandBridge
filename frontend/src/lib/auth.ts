@@ -74,7 +74,9 @@ export function getAccessToken(): string | null {
   const session = getSession();
   if (!session) return null;
   if (config.localDev) return 'local-dev-token';
-  return session.access_token || null;
+  // Use id_token — it contains email and cognito:groups claims.
+  // The access_token only has username/sub, so the backend can't resolve the user.
+  return session.id_token || session.access_token || null;
 }
 
 export async function login(): Promise<void> {

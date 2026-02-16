@@ -4,6 +4,10 @@ variable "audit_table_name" { type = string }
 variable "audit_table_arn" { type = string }
 variable "kb_table_name" { type = string }
 variable "kb_table_arn" { type = string }
+variable "users_table_name" { type = string }
+variable "users_table_arn" { type = string }
+variable "cognito_user_pool_id" { type = string }
+variable "cognito_user_pool_arn" { type = string }
 
 data "aws_iam_policy_document" "lambda_assume" {
   statement {
@@ -31,6 +35,8 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
 }
 
 # Scoped permissions for operational actions
+# TODO: Scope wildcard resources to specific ARNs (CloudWatch log groups,
+# ElastiCache clusters, SSM documents, ECS services, etc.)
 data "aws_iam_policy_document" "actions" {
   # DynamoDB audit table
   statement {
@@ -103,6 +109,22 @@ data "aws_iam_policy_document" "actions" {
     actions   = ["elasticloadbalancing:DeregisterTargets", "elasticloadbalancing:DescribeTargetGroups"]
     resources = ["*"]
   }
+
+  # DynamoDB users table (RBAC authorization)
+  statement {
+    actions   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:Scan"]
+    resources = [var.users_table_arn]
+  }
+
+  # Cognito (disable-user, revoke-sessions, enable-user executors)
+  statement {
+    actions = [
+      "cognito-idp:AdminDisableUser",
+      "cognito-idp:AdminEnableUser",
+      "cognito-idp:AdminUserGlobalSignOut"
+    ]
+    resources = [var.cognito_user_pool_arn]
+  }
 }
 
 resource "aws_iam_role_policy" "actions" {
@@ -124,9 +146,11 @@ resource "aws_lambda_function" "actions" {
 
   environment {
     variables = {
-      AUDIT_TABLE = var.audit_table_name
-      KB_TABLE    = var.kb_table_name
-      ENVIRONMENT = var.environment
+      AUDIT_TABLE  = var.audit_table_name
+      KB_TABLE     = var.kb_table_name
+      USERS_TABLE  = var.users_table_name
+      USER_POOL_ID = var.cognito_user_pool_id
+      ENVIRONMENT  = var.environment
     }
   }
 

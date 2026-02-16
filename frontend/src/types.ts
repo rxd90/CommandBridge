@@ -20,7 +20,7 @@ export interface Action {
   risk: 'low' | 'medium' | 'high';
   target: string;
   runbook?: string;
-  category?: KBCategory;
+  categories?: KBCategory[];
   permission: 'run' | 'request' | 'locked';
 }
 
@@ -70,4 +70,31 @@ export interface KBVersionSummary {
   updated_at: string;
   updated_by: string;
   is_latest?: string;
+}
+
+export interface AuditEntry {
+  id: string;
+  timestamp: number;
+  user: string;
+  action: string;
+  target: string;
+  ticket: string;
+  result: string;
+  approved_by?: string;
+  details?: Record<string, unknown>;
+}
+
+export interface AuditListResponse {
+  entries: AuditEntry[];
+  cursor: string | null;
+}
+
+export interface AdminUser {
+  email: string;
+  name: string;
+  role: string;
+  team: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
 }

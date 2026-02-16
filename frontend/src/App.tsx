@@ -11,6 +11,8 @@ const StatusPage = lazy(() => import('./pages/StatusPage').then(m => ({ default:
 const KnowledgeBasePage = lazy(() => import('./pages/KnowledgeBasePage').then(m => ({ default: m.KnowledgeBasePage })));
 const ArticlePage = lazy(() => import('./pages/ArticlePage').then(m => ({ default: m.ArticlePage })));
 const ArticleEditorPage = lazy(() => import('./pages/ArticleEditorPage').then(m => ({ default: m.ArticleEditorPage })));
+const AuditPage = lazy(() => import('./pages/AuditPage').then(m => ({ default: m.AuditPage })));
+const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
 
 export function App() {
   return (
@@ -24,6 +26,8 @@ export function App() {
         <Route path="kb/new" element={<Suspense fallback={<p className="cb_loading">Loading...</p>}><ArticleEditorPage /></Suspense>} />
         <Route path="kb/:id" element={<Suspense fallback={<p className="cb_loading">Loading...</p>}><ArticlePage /></Suspense>} />
         <Route path="kb/:id/edit" element={<Suspense fallback={<p className="cb_loading">Loading...</p>}><ArticleEditorPage /></Suspense>} />
+        <Route path="audit" element={<Suspense fallback={<p className="cb_loading">Loading...</p>}><AuditPage /></Suspense>} />
+        <Route path="admin" element={<Suspense fallback={<p className="cb_loading">Loading...</p>}><AdminPage /></Suspense>} />
       </Route>
     </Routes>
   );

@@ -23,6 +23,15 @@ mock_audit = types.ModuleType('shared.audit')
 mock_audit.log_action = MagicMock(return_value={'id': 'test', 'timestamp': 0})
 sys.modules['shared.audit'] = mock_audit
 
+# Patch shared.users before handler import (creates DynamoDB at module level)
+mock_users = types.ModuleType('shared.users')
+mock_users.get_user_role = MagicMock(return_value=None)
+mock_users.get_user = MagicMock(return_value=None)
+mock_users.list_users = MagicMock(return_value=[])
+mock_users.update_user = MagicMock(return_value=None)
+mock_users.VALID_ROLES = {'L1-operator', 'L2-engineer', 'L3-admin'}
+sys.modules['shared.users'] = mock_users
+
 # Set KB_TABLE env var before kb.py is imported (it reads at module level)
 os.environ['KB_TABLE'] = 'commandbridge-test-kb'
 

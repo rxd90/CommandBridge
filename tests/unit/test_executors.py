@@ -1,6 +1,6 @@
 """Executor unit tests with moto AWS mocking.
 
-Tests all 10 executor modules in lambdas/actions/executors/.
+Tests all 15 executor modules in lambdas/actions/executors/.
 """
 
 import json
@@ -315,3 +315,217 @@ class TestPauseEnrolmentsExecutor:
             })
             assert result['status'] == 'success'
             assert result['enrolments_paused'] is True
+
+
+# ---------------------------------------------------------------------------
+# revoke_sessions — Cognito (mocked, joserfc not available for moto)
+# ---------------------------------------------------------------------------
+class TestRevokeSessionsExecutor:
+    def test_revokes_sessions(self):
+        with patch('boto3.client') as mock_client:
+            mock_cognito = MagicMock()
+            mock_client.return_value = mock_cognito
+            mock_cognito.admin_user_global_sign_out.return_value = {}
+
+            from actions.executors import revoke_sessions
+            import importlib
+            importlib.reload(revoke_sessions)
+            result = revoke_sessions.execute({
+                'target': 'jane@scotgov.uk',
+                'user_pool_id': 'eu-west-2_test',
+            })
+            assert result['status'] == 'success'
+            assert 'jane@scotgov.uk' in result['message']
+            mock_cognito.admin_user_global_sign_out.assert_called_once_with(
+                UserPoolId='eu-west-2_test',
+                Username='jane@scotgov.uk',
+            )
+
+    def test_cognito_error_propagates(self):
+        with patch('boto3.client') as mock_client:
+            mock_cognito = MagicMock()
+            mock_client.return_value = mock_cognito
+            mock_cognito.admin_user_global_sign_out.side_effect = Exception('UserNotFoundException')
+
+            from actions.executors import revoke_sessions
+            import importlib
+            importlib.reload(revoke_sessions)
+            with pytest.raises(Exception, match='UserNotFoundException'):
+                revoke_sessions.execute({
+                    'target': 'ghost@scotgov.uk',
+                    'user_pool_id': 'eu-west-2_test',
+                })
+
+
+# ---------------------------------------------------------------------------
+# flush_token_cache — ElastiCache (mocked, limited moto support)
+# ---------------------------------------------------------------------------
+class TestFlushTokenCacheExecutor:
+    def test_flushes_cache(self):
+        with patch('boto3.client') as mock_client:
+            mock_ec = MagicMock()
+            mock_client.return_value = mock_ec
+            mock_ec.modify_replication_group.return_value = {}
+
+            from actions.executors import flush_token_cache
+            import importlib
+            importlib.reload(flush_token_cache)
+            result = flush_token_cache.execute({
+                'target': 'oidc-cache',
+                'environment': 'production',
+            })
+            assert result['status'] == 'success'
+            assert 'oidc-cache' in result['message']
+            mock_ec.modify_replication_group.assert_called_once_with(
+                ReplicationGroupId='production-oidc-cache',
+                ApplyImmediately=True,
+            )
+
+    def test_uses_default_cluster_id(self):
+        with patch('boto3.client') as mock_client:
+            mock_ec = MagicMock()
+            mock_client.return_value = mock_ec
+            mock_ec.modify_replication_group.return_value = {}
+
+            from actions.executors import flush_token_cache
+            import importlib
+            importlib.reload(flush_token_cache)
+            result = flush_token_cache.execute({'environment': 'production'})
+            assert result['status'] == 'success'
+            mock_ec.modify_replication_group.assert_called_once_with(
+                ReplicationGroupId='production-scotaccount-oidc-cache',
+                ApplyImmediately=True,
+            )
+
+
+# ---------------------------------------------------------------------------
+# toggle_idv_provider — SSM
+# ---------------------------------------------------------------------------
+@mock_aws
+class TestToggleIdvProviderExecutor:
+    def test_switches_provider(self):
+        ssm = boto3.client('ssm', region_name='eu-west-2')
+        ssm.put_parameter(
+            Name='/scotaccount/idv/active-provider',
+            Value='provider-a',
+            Type='String',
+        )
+
+        from actions.executors.toggle_idv_provider import execute
+        result = execute({
+            'target': 'provider-b',
+            'param_name': '/scotaccount/idv/active-provider',
+        })
+        assert result['status'] == 'success'
+        assert 'provider-b' in result['message']
+
+        # Verify the parameter was actually updated
+        resp = ssm.get_parameter(Name='/scotaccount/idv/active-provider')
+        assert resp['Parameter']['Value'] == 'provider-b'
+
+    def test_creates_param_if_missing(self):
+        from actions.executors.toggle_idv_provider import execute
+        result = execute({
+            'target': 'provider-x',
+            'param_name': '/scotaccount/idv/new-param',
+        })
+        assert result['status'] == 'success'
+
+
+# ---------------------------------------------------------------------------
+# disable_user — Cognito + DynamoDB sync (mocked, joserfc not available)
+# ---------------------------------------------------------------------------
+class TestDisableUserExecutor:
+    def test_disables_user_and_syncs_dynamodb(self):
+        # Reload first so the module is fresh, then patch its references
+        from actions.executors import disable_user
+        import importlib
+        importlib.reload(disable_user)
+
+        with patch('boto3.client') as mock_client, \
+             patch.object(disable_user, 'update_user') as mock_update:
+            mock_cognito = MagicMock()
+            mock_client.return_value = mock_cognito
+            mock_cognito.admin_disable_user.return_value = {}
+
+            result = disable_user.execute({
+                'target': 'victim@scotgov.uk',
+                'user_pool_id': 'eu-west-2_test',
+            })
+            assert result['status'] == 'success'
+            assert 'victim@scotgov.uk' in result['message']
+
+            # Verify Cognito disable was called
+            mock_cognito.admin_disable_user.assert_called_once_with(
+                UserPoolId='eu-west-2_test',
+                Username='victim@scotgov.uk',
+            )
+
+            # Verify DynamoDB sync was called
+            mock_update.assert_called_once_with(
+                'victim@scotgov.uk',
+                {'active': False},
+                'executor:disable-user',
+            )
+
+
+# ---------------------------------------------------------------------------
+# export_audit_log — DynamoDB + S3
+# ---------------------------------------------------------------------------
+@mock_aws
+class TestExportAuditLogExecutor:
+    def _setup_table(self, table_name='test-audit'):
+        dynamodb = boto3.resource('dynamodb', region_name='eu-west-2')
+        table = dynamodb.create_table(
+            TableName=table_name,
+            KeySchema=[
+                {'AttributeName': 'id', 'KeyType': 'HASH'},
+            ],
+            AttributeDefinitions=[
+                {'AttributeName': 'id', 'AttributeType': 'S'},
+            ],
+            BillingMode='PAY_PER_REQUEST',
+        )
+        return table
+
+    def _setup_bucket(self, bucket_name='test-export-bucket'):
+        s3 = boto3.client('s3', region_name='eu-west-2')
+        s3.create_bucket(
+            Bucket=bucket_name,
+            CreateBucketConfiguration={'LocationConstraint': 'eu-west-2'},
+        )
+        return s3
+
+    def test_exports_records_to_s3(self):
+        table = self._setup_table('audit-export-test')
+        s3 = self._setup_bucket('export-bucket')
+
+        # Seed some audit records
+        table.put_item(Item={'id': '1', 'user': 'a@test.com', 'action': 'pull-logs', 'timestamp': 1000})
+        table.put_item(Item={'id': '2', 'user': 'b@test.com', 'action': 'purge-cache', 'timestamp': 2000})
+
+        from actions.executors.export_audit_log import execute
+        result = execute({
+            'target': 'audit-export-test',
+            'bucket': 'export-bucket',
+        })
+        assert result['status'] == 'success'
+        assert result['record_count'] == 2
+        assert 's3_key' in result
+
+        # Verify S3 object was written
+        obj = s3.get_object(Bucket='export-bucket', Key=result['s3_key'])
+        body = json.loads(obj['Body'].read().decode())
+        assert len(body) == 2
+
+    def test_empty_table_exports_zero_records(self):
+        self._setup_table('audit-empty')
+        self._setup_bucket('export-bucket-empty')
+
+        from actions.executors.export_audit_log import execute
+        result = execute({
+            'target': 'audit-empty',
+            'bucket': 'export-bucket-empty',
+        })
+        assert result['status'] == 'success'
+        assert result['record_count'] == 0

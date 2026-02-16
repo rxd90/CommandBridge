@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { Fragment, useMemo } from 'react';
 import { PageHeader } from '../components/PageHeader';
 import { StatusLight } from '../components/StatusLight';
 
@@ -6,7 +6,8 @@ type Status = 'good' | 'warn' | 'bad';
 
 interface Service {
   name: string;
-  regions: Status[];
+  status: Status;
+  detail?: string;
 }
 
 interface Category {
@@ -14,87 +15,103 @@ interface Category {
   services: Service[];
 }
 
-const REGIONS = ['eu-west-1', 'eu-west-2', 'eu-central-1', 'us-east-1', 'us-west-2', 'ap-southeast-2'];
+const REGION = 'eu-west-2 (London)';
 
 const STATUS_DATA: Category[] = [
   {
-    name: 'Networking',
+    name: 'Identity & Authentication',
     services: [
-      { name: 'API Gateway', regions: ['good', 'good', 'warn', 'good', 'good', 'good'] },
-      { name: 'ALB Ingress', regions: ['good', 'good', 'good', 'warn', 'good', 'good'] },
-      { name: 'NLB (Edge)', regions: ['good', 'good', 'good', 'good', 'good', 'good'] },
-      { name: 'Route 53', regions: ['good', 'good', 'good', 'good', 'good', 'good'] },
-      { name: 'WAF', regions: ['good', 'good', 'good', 'good', 'warn', 'good'] },
+      { name: 'Cognito User Pool', status: 'good', detail: 'Sign-in & 2FA flows nominal' },
+      { name: 'OIDC Provider', status: 'good', detail: 'Token issuance healthy' },
+      { name: 'Hosted UI / Login', status: 'good', detail: 'OAuth2 callback responding' },
+      { name: 'Identity Verification', status: 'warn', detail: 'Elevated latency on document checks' },
     ],
   },
   {
-    name: 'Compute',
+    name: 'API & Compute',
     services: [
-      { name: 'EKS Control Plane', regions: ['good', 'good', 'good', 'good', 'good', 'good'] },
-      { name: 'ECS Workers', regions: ['good', 'good', 'good', 'warn', 'good', 'good'] },
-      { name: 'Lambda (Workers)', regions: ['good', 'good', 'good', 'good', 'good', 'good'] },
+      { name: 'API Gateway', status: 'good', detail: 'All routes healthy' },
+      { name: 'Lambda (Actions)', status: 'good', detail: 'Cold starts within SLA' },
+      { name: 'Lambda (Authoriser)', status: 'good', detail: 'JWT validation nominal' },
     ],
   },
   {
-    name: 'Data',
+    name: 'Data & Storage',
     services: [
-      { name: 'RDS Primary', regions: ['good', 'good', 'good', 'good', 'good', 'good'] },
-      { name: 'Aurora Replica', regions: ['good', 'good', 'good', 'good', 'warn', 'good'] },
-      { name: 'ElastiCache Redis', regions: ['warn', 'good', 'bad', 'good', 'good', 'good'] },
-      { name: 'OpenSearch', regions: ['good', 'good', 'good', 'good', 'good', 'good'] },
-      { name: 'S3 (Artifacts)', regions: ['good', 'good', 'good', 'good', 'good', 'good'] },
+      { name: 'DynamoDB (Audit)', status: 'good', detail: 'Read/write capacity normal' },
+      { name: 'DynamoDB (Sessions)', status: 'good', detail: 'TTL cleanup running' },
+      { name: 'S3 (Frontend Assets)', status: 'good', detail: 'Origin access healthy' },
+      { name: 'Secrets Manager', status: 'good', detail: 'Rotation on schedule' },
     ],
   },
   {
-    name: 'Observability',
+    name: 'Network & Delivery',
     services: [
-      { name: 'CloudWatch', regions: ['good', 'good', 'good', 'good', 'good', 'good'] },
-      { name: 'Grafana', regions: ['good', 'good', 'good', 'good', 'good', 'good'] },
-      { name: 'Prometheus', regions: ['good', 'good', 'good', 'good', 'good', 'warn'] },
+      { name: 'CloudFront CDN', status: 'good', detail: 'Edge cache hit ratio 94%' },
+      { name: 'WAF', status: 'good', detail: 'No blocked threat spikes' },
+      { name: 'Route 53 DNS', status: 'good', detail: 'Health checks passing' },
     ],
   },
   {
-    name: 'Security',
+    name: 'Observability & Security',
     services: [
-      { name: 'Auth / OIDC', regions: ['bad', 'warn', 'good', 'good', 'good', 'good'] },
-      { name: 'KMS', regions: ['good', 'good', 'good', 'good', 'good', 'good'] },
-      { name: 'Secrets Manager', regions: ['good', 'good', 'good', 'good', 'good', 'good'] },
+      { name: 'CloudWatch Alarms', status: 'good', detail: 'All alarms in OK state' },
+      { name: 'CloudTrail', status: 'good', detail: 'Audit logging active' },
+      { name: 'KMS', status: 'good', detail: 'Encryption keys available' },
     ],
   },
 ];
 
 export function StatusPage() {
-  const regionHeaders = useMemo(() => REGIONS.map((r) => <th key={r}>{r}</th>), []);
+  const totalServices = useMemo(
+    () => STATUS_DATA.reduce((sum, cat) => sum + cat.services.length, 0),
+    [],
+  );
 
-  const statusRows = useMemo(() => STATUS_DATA.map((cat) => (
-    <>
-      <tr key={cat.name}>
-        <td colSpan={7} className="cb_matrix__category">{cat.name}</td>
-      </tr>
-      {cat.services.map((svc) => (
-        <tr key={svc.name}>
-          <td className="cb_matrix__svc">{svc.name}</td>
-          {svc.regions.map((s, i) => (
-            <td key={i}><StatusLight status={s} /></td>
-          ))}
-        </tr>
-      ))}
-    </>
-  )), []);
+  const summary = useMemo(() => {
+    let good = 0, warn = 0, bad = 0;
+    STATUS_DATA.forEach((cat) =>
+      cat.services.forEach((svc) => {
+        if (svc.status === 'good') good++;
+        else if (svc.status === 'warn') warn++;
+        else bad++;
+      }),
+    );
+    return { good, warn, bad };
+  }, []);
 
   return (
     <>
       <PageHeader
-        label="Global Health"
-        title="Service Status Wall"
-        subtitle="Multi-region service health matrix. In production, status is pulled from CloudWatch alarms and health checks."
+        label="ScotAccount Health"
+        title="Service Status"
+        subtitle={`Single-region deployment — ${REGION}. Status signals sourced from CloudWatch alarms and health checks.`}
       />
 
       <div className="cb_legend">
         <span><StatusLight status="good" /> Operational</span>
         <span><StatusLight status="warn" /> Degraded</span>
         <span><StatusLight status="bad" /> Outage</span>
-        <span className="cb_legend__timestamp">Last updated: 12 Feb 2026 09:36 UTC</span>
+        <span className="cb_legend__timestamp">Manual snapshot</span>
+      </div>
+
+      <div className="cb_status-summary">
+        <div className="cb_status-summary__item cb_status-summary__item--good">
+          <span className="cb_status-summary__count">{summary.good}</span>
+          <span className="cb_status-summary__label">Operational</span>
+        </div>
+        <div className="cb_status-summary__item cb_status-summary__item--warn">
+          <span className="cb_status-summary__count">{summary.warn}</span>
+          <span className="cb_status-summary__label">Degraded</span>
+        </div>
+        <div className="cb_status-summary__item cb_status-summary__item--bad">
+          <span className="cb_status-summary__count">{summary.bad}</span>
+          <span className="cb_status-summary__label">Outage</span>
+        </div>
+        <div className="cb_status-summary__item">
+          <span className="cb_status-summary__count">{totalServices}</span>
+          <span className="cb_status-summary__label">Total Services</span>
+        </div>
       </div>
 
       <div className="cb_matrix-wrap">
@@ -102,17 +119,32 @@ export function StatusPage() {
           <thead>
             <tr>
               <th>Service</th>
-              {regionHeaders}
+              <th>Status</th>
+              <th>Detail</th>
             </tr>
           </thead>
           <tbody>
-            {statusRows}
+            {STATUS_DATA.map((cat) => (
+              <Fragment key={cat.name}>
+                <tr>
+                  <td colSpan={3} className="cb_matrix__category">{cat.name}</td>
+                </tr>
+                {cat.services.map((svc) => (
+                  <tr key={svc.name}>
+                    <td className="cb_matrix__svc">{svc.name}</td>
+                    <td><StatusLight status={svc.status} /></td>
+                    <td className="cb_matrix__detail">{svc.detail}</td>
+                  </tr>
+                ))}
+              </Fragment>
+            ))}
           </tbody>
         </table>
       </div>
 
       <p className="cb_footer cb_footer--inline">
-        In production, status signals are pulled from CloudWatch alarms and Route 53 health checks via the API.
+        ScotAccount operates exclusively in AWS {REGION}. Status display is manually maintained.
+        Live CloudWatch integration is planned.
       </p>
     </>
   );

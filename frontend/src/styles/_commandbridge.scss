@@ -588,6 +588,54 @@
 }
 
 // ============================================
+// Status Summary Bar
+// ============================================
+
+.cb_status-summary {
+  display: flex;
+  gap: var(--cb-space-md);
+  margin-bottom: var(--cb-space-lg);
+
+  &__item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--cb-space-xs);
+    padding: var(--cb-space-md);
+    border-radius: var(--cb-border-radius);
+    border: 1px solid var(--cb-border);
+    background: var(--cb-glass-bg);
+    backdrop-filter: blur(var(--cb-glass-blur));
+    -webkit-backdrop-filter: blur(var(--cb-glass-blur));
+
+    &--good { border-color: rgba(52, 211, 153, 0.3); }
+    &--warn { border-color: rgba(251, 191, 36, 0.3); }
+    &--bad  { border-color: rgba(248, 113, 113, 0.3); }
+  }
+
+  &__count {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-family: var(--cb-font-mono);
+    color: var(--cb-text-primary);
+  }
+
+  &__label {
+    font-size: var(--cb-font-size-xs);
+    color: var(--cb-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+}
+
+.cb_matrix .cb_matrix__detail {
+  text-align: left;
+  color: var(--cb-text-tertiary);
+  font-size: var(--cb-font-size-xs);
+}
+
+// ============================================
 // Modal
 // ============================================
 
@@ -1554,4 +1602,146 @@ textarea.cb_input {
     display: flex;
     gap: var(--cb-space-md);
   }
+}
+
+// ============================================
+// Admin Panel
+// ============================================
+
+.cb_admin-section {
+  margin-bottom: var(--cb-space-2xl);
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: var(--cb-space-sm);
+    margin-bottom: var(--cb-space-md);
+    font-size: var(--cb-font-size-lg);
+
+    svg {
+      width: 20px;
+      height: 20px;
+      color: var(--cb-accent);
+    }
+  }
+
+  &__desc {
+    color: var(--cb-text-secondary);
+    margin-bottom: var(--cb-space-md);
+    font-size: var(--cb-font-size-sm);
+
+    code {
+      background: var(--cb-surface);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--cb-font-mono);
+      font-size: var(--cb-font-size-xs);
+    }
+  }
+}
+
+.cb_admin-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--cb-radius);
+  border: 1px solid var(--cb-border);
+}
+
+.cb_admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--cb-font-size-sm);
+
+  th,
+  td {
+    padding: var(--cb-space-sm) var(--cb-space-md);
+    text-align: left;
+    border-bottom: 1px solid var(--cb-border);
+    white-space: nowrap;
+  }
+
+  th {
+    background: var(--cb-surface);
+    color: var(--cb-text-secondary);
+    font-weight: 600;
+    font-size: var(--cb-font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  td {
+    color: var(--cb-text-primary);
+  }
+
+  tbody tr:hover {
+    background: rgba(var(--cb-accent-rgb, 59, 130, 246), 0.05);
+  }
+
+  &__row--disabled td {
+    opacity: 0.5;
+  }
+
+  &__actions {
+    display: flex;
+    gap: var(--cb-space-xs);
+    align-items: center;
+  }
+}
+
+.cb_rbac-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--cb-font-size-sm);
+
+  th,
+  td {
+    padding: var(--cb-space-xs) var(--cb-space-sm);
+    text-align: center;
+    border-bottom: 1px solid var(--cb-border);
+  }
+
+  th {
+    background: var(--cb-surface);
+    color: var(--cb-text-secondary);
+    font-weight: 600;
+    font-size: var(--cb-font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__action {
+    text-align: left !important;
+    font-weight: 500;
+  }
+
+  tbody tr:hover {
+    background: rgba(var(--cb-accent-rgb, 59, 130, 246), 0.05);
+  }
+}
+
+.cb_admin-role-select {
+  width: 100%;
+  appearance: auto;
+}
+
+.cb_button--small {
+  padding: var(--cb-space-xs) var(--cb-space-sm);
+  font-size: var(--cb-font-size-xs);
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+// Audit page
+.cb_audit-table__ts {
+  white-space: nowrap;
+  font-family: var(--cb-font-mono);
+  font-size: var(--cb-font-size-xs);
+}
+
+.cb_audit-load-more {
+  display: flex;
+  justify-content: center;
+  padding: var(--cb-space-lg) 0;
 }

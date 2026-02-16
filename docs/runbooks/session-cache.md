@@ -1,5 +1,5 @@
 ---
-title: Session Cache Instability
+title: Session Cache
 service: Redis / ElastiCache
 owner: Identity Platform
 category: Backend

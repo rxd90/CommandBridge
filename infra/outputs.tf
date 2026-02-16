@@ -42,3 +42,8 @@ output "kb_table_name" {
   description = "DynamoDB KB table name"
   value       = module.storage.kb_table_name
 }
+
+output "users_table_name" {
+  description = "DynamoDB users table name"
+  value       = module.storage.users_table_name
+}

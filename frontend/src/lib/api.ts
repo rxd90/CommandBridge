@@ -1,6 +1,6 @@
 import { config } from '../config';
 import { getAccessToken } from './auth';
-import type { ExecuteResult, KBListResponse, KBArticleResponse, KBVersionSummary } from '../types';
+import type { ExecuteResult, KBListResponse, KBArticleResponse, KBVersionSummary, AuditListResponse, AdminUser } from '../types';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = getAccessToken();
@@ -65,6 +65,20 @@ const LOCAL_KB_ARTICLES = [
   { id: 'api-gateway-5xx', version: 1, title: 'API Gateway 5xx', slug: 'api-gateway-5xx', service: 'API Gateway', owner: 'Platform Ops', category: 'Infrastructure', tags: ['api', '5xx', 'gateway'], last_reviewed: '2026-01-10', created_at: '2026-01-10T00:00:00Z', created_by: 'seed', updated_at: '2026-01-10T00:00:00Z', updated_by: 'seed' },
   { id: 'waf-ip-blocking-guide', version: 1, title: 'WAF IP Blocking Guide', slug: 'waf-ip-blocking-guide', service: 'WAF', owner: 'Security', category: 'Security', tags: ['waf', 'ip', 'security'], last_reviewed: '2026-02-14', created_at: '2026-02-14T00:00:00Z', created_by: 'seed', updated_at: '2026-02-14T00:00:00Z', updated_by: 'seed' },
   { id: 'commandbridge-user-guide', version: 1, title: 'CommandBridge User Guide', slug: 'commandbridge-user-guide', service: 'CommandBridge', owner: 'Platform Ops', category: 'Frontend', tags: ['commandbridge', 'guide', 'portal'], last_reviewed: '2026-02-14', created_at: '2026-02-14T00:00:00Z', created_by: 'seed', updated_at: '2026-02-14T00:00:00Z', updated_by: 'seed' },
+  { id: 'session-revocation', version: 1, title: 'Session Revocation', slug: 'session-revocation', service: 'Cognito User Pool', owner: 'Identity Platform', category: 'Security', tags: ['session', 'revoke', 'cognito', 'compromised'], last_reviewed: '2026-02-16', created_at: '2026-02-16T00:00:00Z', created_by: 'seed', updated_at: '2026-02-16T00:00:00Z', updated_by: 'seed' },
+  { id: 'token-cache-refresh', version: 1, title: 'Token Cache Refresh', slug: 'token-cache-refresh', service: 'OIDC / JWKS Cache', owner: 'Identity Platform', category: 'Backend', tags: ['oidc', 'jwks', 'token', 'cache'], last_reviewed: '2026-02-16', created_at: '2026-02-16T00:00:00Z', created_by: 'seed', updated_at: '2026-02-16T00:00:00Z', updated_by: 'seed' },
+  { id: 'idv-provider-failover', version: 1, title: 'IDV Provider Failover', slug: 'idv-provider-failover', service: 'Document Verification Service', owner: 'Enrolment', category: 'Backend', tags: ['idv', 'failover', 'provider'], last_reviewed: '2026-02-16', created_at: '2026-02-16T00:00:00Z', created_by: 'seed', updated_at: '2026-02-16T00:00:00Z', updated_by: 'seed' },
+  { id: 'audit-export-procedure', version: 1, title: 'Audit Export Procedure', slug: 'audit-export-procedure', service: 'DynamoDB Audit Table', owner: 'Platform Ops', category: 'Security', tags: ['audit', 'export', 'compliance', 's3'], last_reviewed: '2026-02-16', created_at: '2026-02-16T00:00:00Z', created_by: 'seed', updated_at: '2026-02-16T00:00:00Z', updated_by: 'seed' },
+  { id: 'account-suspension', version: 1, title: 'Account Suspension', slug: 'account-suspension', service: 'Cognito User Pool', owner: 'Trust & Safety', category: 'Security', tags: ['cognito', 'disable', 'suspend', 'user'], last_reviewed: '2026-02-16', created_at: '2026-02-16T00:00:00Z', created_by: 'seed', updated_at: '2026-02-16T00:00:00Z', updated_by: 'seed' },
+  { id: 'cognito-rate-limits', version: 1, title: 'Cognito Rate Limits', slug: 'cognito-rate-limits', service: 'Cognito User Pool', owner: 'Identity Platform', category: 'Backend', tags: ['cognito', 'rate-limit', 'throttling'], last_reviewed: '2026-02-16', created_at: '2026-02-16T00:00:00Z', created_by: 'seed', updated_at: '2026-02-16T00:00:00Z', updated_by: 'seed' },
+  { id: 'scotaccount-onboarding-checklist', version: 1, title: 'ScotAccount Service Onboarding Checklist', slug: 'scotaccount-onboarding-checklist', service: 'ScotAccount Integration', owner: 'Platform Ops', category: 'Backend', tags: ['onboarding', 'integration', 'oidc', 'relying-party'], last_reviewed: '2026-02-16', created_at: '2026-02-16T00:00:00Z', created_by: 'seed', updated_at: '2026-02-16T00:00:00Z', updated_by: 'seed' },
+  { id: '2fa-sms-delivery', version: 1, title: '2FA SMS Delivery Issues', slug: '2fa-sms-delivery', service: 'MFA / SMS / Push', owner: 'Trust & Safety', category: 'Backend', tags: ['mfa', 'sms', '2fa', 'otp', 'delivery'], last_reviewed: '2026-02-16', created_at: '2026-02-16T00:00:00Z', created_by: 'seed', updated_at: '2026-02-16T00:00:00Z', updated_by: 'seed' },
+  { id: 'data-subject-access-request', version: 1, title: 'Data Subject Access Request (DSAR) Procedure', slug: 'data-subject-access-request', service: 'ScotAccount Data', owner: 'Trust & Safety', category: 'Security', tags: ['dsar', 'gdpr', 'data-protection', 'privacy'], last_reviewed: '2026-02-16', created_at: '2026-02-16T00:00:00Z', created_by: 'seed', updated_at: '2026-02-16T00:00:00Z', updated_by: 'seed' },
+  { id: 'session-cache', version: 1, title: 'Session Cache', slug: 'session-cache', service: 'Redis / ElastiCache', owner: 'Identity Platform', category: 'Backend', tags: ['sessions', 'redis', 'caching', 'login-loops', 'evictions'], last_reviewed: '2026-01-10', created_at: '2026-01-10T00:00:00Z', created_by: 'seed', updated_at: '2026-01-10T00:00:00Z', updated_by: 'seed' },
+  { id: 'eks-instability', version: 1, title: 'EKS Instability', slug: 'eks-instability', service: 'Kubernetes / EKS', owner: 'Platform Engineering', category: 'Infrastructure', tags: ['eks', 'kubernetes', 'scaling', 'stability', 'pods'], last_reviewed: '2026-01-03', created_at: '2026-01-03T00:00:00Z', created_by: 'seed', updated_at: '2026-01-03T00:00:00Z', updated_by: 'seed' },
+  { id: 'enrolment-spikes', version: 1, title: 'Enrolment Spikes', slug: 'enrolment-spikes', service: 'Enrolment API', owner: 'Enrolment', category: 'Backend', tags: ['enrolment', 'queues', 'scaling', 'throttling', 'backlog'], last_reviewed: '2026-01-09', created_at: '2026-01-09T00:00:00Z', created_by: 'seed', updated_at: '2026-01-09T00:00:00Z', updated_by: 'seed' },
+  { id: 'fraud-risk-checks', version: 1, title: 'Fraud & Risk Checks', slug: 'fraud-risk-checks', service: 'CIFAS / AML', owner: 'Risk Ops', category: 'Security', tags: ['fraud', 'cifas', 'aml', 'risk', 'dependencies'], last_reviewed: '2026-01-02', created_at: '2026-01-02T00:00:00Z', created_by: 'seed', updated_at: '2026-01-02T00:00:00Z', updated_by: 'seed' },
+  { id: 'rds-connection-storms', version: 1, title: 'RDS Connection Storms', slug: 'rds-connection-storms', service: 'RDS / Aurora', owner: 'Data Services', category: 'Infrastructure', tags: ['rds', 'database', 'connections', 'timeouts', 'pools', 'aurora'], last_reviewed: '2026-01-07', created_at: '2026-01-07T00:00:00Z', created_by: 'seed', updated_at: '2026-01-07T00:00:00Z', updated_by: 'seed' },
 ];
 
 export async function listKBArticles(params?: {
@@ -187,5 +201,78 @@ export async function deleteKBArticle(id: string): Promise<{ message: string }> 
 
   return request<{ message: string }>(`/kb/${id}`, {
     method: 'DELETE',
+  });
+}
+
+// ── Audit API ────────────────────────────────────────────────────
+
+export async function listAuditEntries(params?: {
+  user?: string;
+  action?: string;
+  limit?: number;
+  cursor?: string;
+}): Promise<AuditListResponse> {
+  if (config.localDev) {
+    return { entries: [], cursor: null };
+  }
+
+  const qs = new URLSearchParams();
+  if (params?.user) qs.set('user', params.user);
+  if (params?.action) qs.set('action', params.action);
+  if (params?.limit) qs.set('limit', String(params.limit));
+  if (params?.cursor) qs.set('cursor', params.cursor);
+  const query = qs.toString();
+  return request<AuditListResponse>(`/actions/audit${query ? `?${query}` : ''}`);
+}
+
+// ── Admin API ─────────────────────────────────────────────────────
+
+export async function listAdminUsers(): Promise<{ users: AdminUser[] }> {
+  if (config.localDev) {
+    const res = await fetch('/rbac/users.json');
+    const data = await res.json();
+    const users: AdminUser[] = data.users.map((u: Record<string, unknown>) => ({
+      email: u.email as string,
+      name: u.name as string,
+      role: u.role as string,
+      team: u.team as string,
+      active: u.active !== false,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    }));
+    return { users };
+  }
+
+  return request<{ users: AdminUser[] }>('/admin/users');
+}
+
+export async function disableAdminUser(email: string): Promise<{ message: string }> {
+  if (config.localDev) {
+    return { message: `User ${email} disabled (local dev mode)` };
+  }
+
+  return request<{ message: string }>(`/admin/users/${encodeURIComponent(email)}/disable`, {
+    method: 'POST',
+  });
+}
+
+export async function enableAdminUser(email: string): Promise<{ message: string }> {
+  if (config.localDev) {
+    return { message: `User ${email} enabled (local dev mode)` };
+  }
+
+  return request<{ message: string }>(`/admin/users/${encodeURIComponent(email)}/enable`, {
+    method: 'POST',
+  });
+}
+
+export async function setAdminUserRole(email: string, role: string): Promise<{ message: string }> {
+  if (config.localDev) {
+    return { message: `User ${email} role changed to ${role} (local dev mode)` };
+  }
+
+  return request<{ message: string }>(`/admin/users/${encodeURIComponent(email)}/role`, {
+    method: 'POST',
+    body: JSON.stringify({ role }),
   });
 }

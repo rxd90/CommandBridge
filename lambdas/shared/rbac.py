@@ -67,7 +67,7 @@ def get_actions_for_role(user_groups: list) -> list:
             'risk': action['risk'],
             'target': action['target'],
             'runbook': action.get('runbook', ''),
-            'category': action.get('category', ''),
+            'categories': action.get('categories', []),
             'permission': permission
         })
     return result

@@ -17,8 +17,29 @@ mock_audit = types.ModuleType('shared.audit')
 mock_audit.log_action = MagicMock(return_value={'id': 'test', 'timestamp': 0})
 sys.modules['shared.audit'] = mock_audit
 
+# Patch users module before handler import — users.py creates a DynamoDB
+# resource at module level which would fail without AWS credentials.
+mock_users = types.ModuleType('shared.users')
+mock_users.get_user_role = MagicMock(return_value=None)  # fallback to JWT groups
+mock_users.get_user = MagicMock(return_value=None)
+mock_users.list_users = MagicMock(return_value=[])
+mock_users.update_user = MagicMock(return_value=None)
+mock_users.VALID_ROLES = {'L1-operator', 'L2-engineer', 'L3-admin'}
+sys.modules['shared.users'] = mock_users
+
+# Patch audit query functions used by _handle_audit
+mock_audit.query_by_user = MagicMock(return_value={'entries': [], 'cursor': None})
+mock_audit.query_by_action = MagicMock(return_value={'entries': [], 'cursor': None})
+mock_audit.list_recent = MagicMock(return_value={'entries': [], 'cursor': None})
+
 from actions.handler import lambda_handler
 from conftest import make_apigw_event
+
+
+@pytest.fixture(autouse=True)
+def _ensure_audit_mock():
+    """Re-set shared.audit mock — test_audit.py reloads the real module."""
+    sys.modules['shared.audit'] = mock_audit
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +206,7 @@ class TestGroupsNormalization:
         response = lambda_handler(event, None)
         assert response['statusCode'] == 200
         actions = json.loads(response['body'])['actions']
-        assert len(actions) == 10
+        assert len(actions) == 15
 
     def test_list_groups_works(self):
         event = make_apigw_event('/actions/permissions', 'GET', groups=['L2-engineer'])
@@ -202,7 +223,7 @@ class TestPermissionsEndpoint:
         response = lambda_handler(event, None)
         body = json.loads(response['body'])
         assert isinstance(body['actions'], list)
-        assert len(body['actions']) == 10
+        assert len(body['actions']) == 15
 
     def test_l1_permissions_correct(self):
         event = make_apigw_event('/actions/permissions', 'GET', groups=['L1-operator'])
@@ -216,3 +237,156 @@ class TestPermissionsEndpoint:
         event = make_apigw_event('/actions/permissions', 'GET', groups=['L1-operator'])
         response = lambda_handler(event, None)
         assert response['headers']['Content-Type'] == 'application/json'
+
+
+# ---------------------------------------------------------------------------
+# Admin routes
+# ---------------------------------------------------------------------------
+class TestAdminRoutes:
+    """Tests for /admin/* routes added in the admin panel feature."""
+
+    def setup_method(self):
+        """Reset mocks before each test."""
+        mock_users.get_user_role.reset_mock()
+        mock_users.get_user.reset_mock()
+        mock_users.list_users.reset_mock()
+        mock_users.update_user.reset_mock()
+        mock_audit.log_action.reset_mock()
+        # Defaults
+        mock_users.get_user_role.return_value = None
+        mock_users.get_user.return_value = None
+        mock_users.list_users.return_value = []
+        mock_users.update_user.return_value = None
+
+    def test_list_users_requires_l3(self):
+        """L1 and L2 should get 403 on /admin/users."""
+        for role in ['L1-operator', 'L2-engineer']:
+            event = make_apigw_event('/admin/users', 'GET', groups=[role])
+            response = lambda_handler(event, None)
+            assert response['statusCode'] == 403, f'{role} should be denied'
+
+    def test_list_users_returns_users(self):
+        mock_users.list_users.return_value = [
+            {'email': 'a@test.com', 'name': 'A', 'role': 'L1-operator',
+             'team': 'ops', 'active': True, 'created_at': '', 'updated_at': ''},
+        ]
+        event = make_apigw_event('/admin/users', 'GET', groups=['L3-admin'])
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 200
+        body = json.loads(response['body'])
+        assert len(body['users']) == 1
+        assert body['users'][0]['email'] == 'a@test.com'
+
+    def test_disable_user_works(self):
+        mock_users.get_user.return_value = {
+            'email': 'target@scotgov.uk', 'name': 'Target', 'role': 'L1-operator',
+            'active': True,
+        }
+        mock_users.update_user.return_value = {'email': 'target@scotgov.uk', 'active': False}
+
+        event = make_apigw_event(
+            '/admin/users/target%40scotgov.uk/disable', 'POST',
+            email='admin@scotgov.uk', groups=['L3-admin'],
+        )
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 200
+        assert 'disabled' in json.loads(response['body'])['message']
+        mock_users.update_user.assert_called_once()
+
+    def test_disable_self_rejected(self):
+        event = make_apigw_event(
+            '/admin/users/admin%40scotgov.uk/disable', 'POST',
+            email='admin@scotgov.uk', groups=['L3-admin'],
+        )
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 400
+        assert 'own account' in json.loads(response['body'])['message']
+
+    def test_enable_user_works(self):
+        mock_users.get_user.return_value = {
+            'email': 'target@scotgov.uk', 'name': 'Target', 'role': 'L1-operator',
+            'active': False,
+        }
+        mock_users.update_user.return_value = {'email': 'target@scotgov.uk', 'active': True}
+
+        event = make_apigw_event(
+            '/admin/users/target%40scotgov.uk/enable', 'POST',
+            email='admin@scotgov.uk', groups=['L3-admin'],
+        )
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 200
+        assert 'enabled' in json.loads(response['body'])['message']
+
+    def test_set_role_validates_input(self):
+        event = make_apigw_event(
+            '/admin/users/target%40scotgov.uk/role', 'POST',
+            body={'role': 'INVALID-ROLE'},
+            email='admin@scotgov.uk', groups=['L3-admin'],
+        )
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 400
+        assert 'Invalid role' in json.loads(response['body'])['message']
+
+    def test_set_role_works(self):
+        mock_users.get_user.return_value = {
+            'email': 'target@scotgov.uk', 'name': 'Target', 'role': 'L1-operator',
+            'active': True,
+        }
+        mock_users.update_user.return_value = {'email': 'target@scotgov.uk', 'role': 'L2-engineer'}
+
+        event = make_apigw_event(
+            '/admin/users/target%40scotgov.uk/role', 'POST',
+            body={'role': 'L2-engineer'},
+            email='admin@scotgov.uk', groups=['L3-admin'],
+        )
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 200
+        assert 'L2-engineer' in json.loads(response['body'])['message']
+
+    def test_url_decoding(self):
+        """Emails with %40 in the path are correctly decoded to @."""
+        mock_users.get_user.return_value = {
+            'email': 'user@example.com', 'name': 'User', 'role': 'L1-operator',
+            'active': True,
+        }
+        mock_users.update_user.return_value = {'email': 'user@example.com', 'active': False}
+
+        event = make_apigw_event(
+            '/admin/users/user%40example.com/disable', 'POST',
+            email='admin@scotgov.uk', groups=['L3-admin'],
+        )
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 200
+        # Verify get_user was called with decoded email, not encoded
+        mock_users.get_user.assert_called_with('user@example.com')
+
+    def test_user_not_found(self):
+        mock_users.get_user.return_value = None
+        event = make_apigw_event(
+            '/admin/users/ghost%40scotgov.uk/disable', 'POST',
+            email='admin@scotgov.uk', groups=['L3-admin'],
+        )
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 404
+        assert 'not found' in json.loads(response['body'])['message'].lower()
+
+
+# ---------------------------------------------------------------------------
+# Request endpoint — ticket validation
+# ---------------------------------------------------------------------------
+class TestRequestTicketValidation:
+    def test_bad_ticket_format_returns_400(self):
+        event = make_apigw_event('/actions/request', 'POST',
+            body={'action': 'maintenance-mode', 'ticket': 'BADFORMAT', 'reason': 'test'},
+            groups=['L1-operator'])
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 400
+        assert 'ticket must match' in json.loads(response['body'])['message']
+
+    @pytest.mark.parametrize('ticket', ['INC-001', 'CHG-1234'])
+    def test_valid_ticket_accepted(self, ticket):
+        event = make_apigw_event('/actions/request', 'POST',
+            body={'action': 'maintenance-mode', 'ticket': ticket, 'reason': 'test'},
+            groups=['L1-operator'])
+        response = lambda_handler(event, None)
+        assert response['statusCode'] in (202, 403), f'Failed for ticket {ticket}'

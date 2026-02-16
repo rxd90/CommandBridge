@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Play, Send, Lock, Server, FileText, X, CheckCircle, AlertCircle, Monitor, HardDrive, Shield } from 'lucide-react';
+import { Play, Send, Lock, Server, FileText, X, CheckCircle, AlertCircle, Monitor, HardDrive, Shield, Search } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { StatusTag } from '../components/StatusTag';
 import { Modal } from '../components/Modal';
@@ -20,7 +20,7 @@ const CATEGORIES: { key: KBCategory; label: string; icon: typeof Monitor; colour
   { key: 'Security', label: 'Security', icon: Shield, colour: 'red' },
 ];
 
-const CATEGORY_COLOUR: Record<string, string> = {
+const CATEGORY_COLOUR: Record<string, 'blue' | 'purple' | 'orange' | 'red'> = {
   Frontend: 'blue',
   Backend: 'purple',
   Infrastructure: 'orange',
@@ -30,6 +30,7 @@ const CATEGORY_COLOUR: Record<string, string> = {
 export function ActionsPage() {
   const [actions, setActions] = useState<Action[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<KBCategory | null>(null);
 
   // Modal state
@@ -83,9 +84,17 @@ export function ActionsPage() {
     }
   }, [modalAction, ticket, reason, isRequest]);
 
-  const filteredActions = activeCategory
-    ? actions.filter(a => a.category === activeCategory)
-    : actions;
+  const filteredActions = actions.filter(a => {
+    if (activeCategory && !a.categories?.includes(activeCategory)) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return a.name.toLowerCase().includes(q)
+        || a.description.toLowerCase().includes(q)
+        || a.target.toLowerCase().includes(q)
+        || (a.categories?.some(c => c.toLowerCase().includes(q)) ?? false);
+    }
+    return true;
+  });
 
   return (
     <>
@@ -94,6 +103,19 @@ export function ActionsPage() {
         title="Actions"
         subtitle="Pre-approved operational actions. Permissions are enforced server-side based on your role. Every execution is audited."
       />
+
+      <div className="cb_kb-toolbar">
+        <div className="cb_kb-search">
+          <Search />
+          <input
+            type="text"
+            className="cb_input"
+            placeholder="Search actions by name, target, or description..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+      </div>
 
       <div className="cb_kb-categories">
         {CATEGORIES.map(({ key, label, icon: Icon, colour }) => (
@@ -112,7 +134,7 @@ export function ActionsPage() {
         <p className="cb_loading">Loading actions…</p>
       ) : filteredActions.length === 0 ? (
         <div className="cb_kb-empty">
-          <p>No actions found{activeCategory ? ` in ${activeCategory}` : ''}.</p>
+          <p>No actions found{search ? ` matching "${search}"` : ''}{activeCategory ? ` in ${activeCategory}` : ''}.</p>
         </div>
       ) : (
         <div className="cb_actions-list">
@@ -125,11 +147,11 @@ export function ActionsPage() {
                   <StatusTag colour={RISK_COLOUR[action.risk]}>
                     {action.risk.charAt(0).toUpperCase() + action.risk.slice(1)} risk
                   </StatusTag>
-                  {action.category && (
-                    <StatusTag colour={CATEGORY_COLOUR[action.category] || 'blue'}>
-                      {action.category}
+                  {action.categories?.map(cat => (
+                    <StatusTag key={cat} colour={CATEGORY_COLOUR[cat] || 'blue'}>
+                      {cat}
                     </StatusTag>
-                  )}
+                  ))}
                   <span className="cb_action-card__target"><Server /> {action.target}</span>
                   {action.runbook && (
                     <a href={`/kb/${action.runbook}`} className="cb_action-card__runbook">

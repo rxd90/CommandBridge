@@ -75,7 +75,7 @@ async function getPermissionsLocal(): Promise<ActionPermissions> {
       risk: a.risk as 'low' | 'medium' | 'high',
       target: a.target as string,
       runbook: a.runbook as string | undefined,
-      category: a.category as KBCategory | undefined,
+      categories: a.categories as KBCategory[] | undefined,
       permission,
     });
   }
