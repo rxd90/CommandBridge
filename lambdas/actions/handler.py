@@ -177,7 +177,10 @@ def _handle_audit(event, user_email, user_groups):
     from shared.audit import query_by_user, query_by_action, list_recent
 
     params = event.get('queryStringParameters') or {}
-    limit = min(int(params.get('limit', 50)), 200)
+    try:
+        limit = min(int(params.get('limit', 50)), 200)
+    except (TypeError, ValueError):
+        limit = 50
     cursor = params.get('cursor')
     user_filter = params.get('user')
     action_filter = params.get('action')
@@ -209,12 +212,16 @@ def _has_delete_access(user_groups):
 def _handle_kb_list(event):
     """GET /kb — list latest articles with search, service filter, pagination."""
     params = event.get('queryStringParameters') or {}
+    try:
+        kb_limit = min(int(params.get('limit', 25)), 100)
+    except (TypeError, ValueError):
+        kb_limit = 25
     result = kb.list_articles(
         search=params.get('search'),
         service=params.get('service'),
         category=params.get('category'),
         cursor=params.get('cursor'),
-        limit=params.get('limit', 25),
+        limit=kb_limit,
     )
     return _response(200, result)
 
@@ -401,14 +408,8 @@ def _handle_admin_set_role(event, target_email, user_email, user_groups):
 def _get_executor(action_id):
     """Dynamically import and return the executor function for an action."""
     module_name = action_id.replace('-', '_')
-    try:
-        mod = __import__(f'actions.executors.{module_name}', fromlist=['execute'])
-        return mod.execute
-    except ImportError:
-        # Return a stub executor for actions not yet implemented
-        def stub(body):
-            return {'status': 'simulated', 'message': f'{action_id} executor not yet implemented'}
-        return stub
+    mod = __import__(f'actions.executors.{module_name}', fromlist=['execute'])
+    return mod.execute
 
 
 def _parse_body(event):

@@ -52,7 +52,7 @@ class TestAuditLogging:
         assert 'id' in record
         assert isinstance(record['timestamp'], int)
 
-    def test_approved_by_defaults_to_self(self, aws_env):
+    def test_approved_by_defaults_to_empty(self, aws_env):
         record = aws_env['audit'].log_action(
             user='alice@scotgov.uk',
             action='purge-cache',
@@ -60,7 +60,7 @@ class TestAuditLogging:
             ticket='INC-001',
             result='success',
         )
-        assert record['approved_by'] == 'self'
+        assert record['approved_by'] == ''
 
     def test_approved_by_custom_value(self, aws_env):
         record = aws_env['audit'].log_action(

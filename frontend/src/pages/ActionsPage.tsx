@@ -71,6 +71,10 @@ export function ActionsPage() {
       setResult({ ok: false, message: 'Ticket and reason are required.' });
       return;
     }
+    if (!/^(INC|CHG)-[\w-]+$/.test(ticket.trim())) {
+      setResult({ ok: false, message: 'Ticket must match format INC-XXXX or CHG-XXXX.' });
+      return;
+    }
 
     setExecuting(true);
     try {

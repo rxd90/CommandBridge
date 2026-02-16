@@ -4,6 +4,9 @@ import type { ExecuteResult, KBListResponse, KBArticleResponse, KBVersionSummary
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = getAccessToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
   const res = await fetch(`${config.apiBaseUrl}${path}`, {
     ...options,
     headers: {
@@ -13,11 +16,16 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     },
   });
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.message || `Request failed (${res.status})`);
+  let data: Record<string, unknown>;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(`Request failed (${res.status})`);
   }
-  return data;
+  if (!res.ok) {
+    throw new Error((data.message as string) || `Request failed (${res.status})`);
+  }
+  return data as T;
 }
 
 export async function executeAction(

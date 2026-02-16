@@ -50,7 +50,7 @@ def log_action(
         'target': target,
         'ticket': ticket,
         'result': result,
-        'approved_by': approved_by or 'self'
+        'approved_by': approved_by or ''
     }
 
     if details:

@@ -10,8 +10,10 @@ The KB is now a DynamoDB-backed system with full CRUD, versioning, and search â€
 |---|---|---|---|
 | [Login Failures](runbooks/login-failures.md) | ScotAccount Auth (OIDC) | Identity Platform | Backend |
 | [MFA Issues](runbooks/mfa-issues.md) | MFA / SMS / Push | Trust & Safety | Backend |
+| [2FA SMS Delivery Issues](runbooks/2fa-sms-delivery.md) | MFA / SMS / Push | Trust & Safety | Backend |
 | [IDV Failures](runbooks/idv-failures.md) | Document Verification | Enrolment | Backend |
-| [Fraud & Risk Checks](runbooks/fraud-risk-checks.md) | CIFAS / AML | Risk Ops | Backend |
+| [IDV Provider Failover](runbooks/idv-provider-failover.md) | Document Verification Service | Enrolment | Backend |
+| [Fraud & Risk Checks](runbooks/fraud-risk-checks.md) | CIFAS / AML | Risk Ops | Security |
 | [API Gateway 5xx](runbooks/api-gateway-5xx.md) | API Gateway | Platform Ops | Infrastructure |
 | [EKS Instability](runbooks/eks-instability.md) | Kubernetes / EKS | Platform Engineering | Infrastructure |
 | [RDS Connection Storms](runbooks/rds-connection-storms.md) | RDS / Aurora | Data Services | Infrastructure |
@@ -19,6 +21,10 @@ The KB is now a DynamoDB-backed system with full CRUD, versioning, and search â€
 | [Enrolment Spikes](runbooks/enrolment-spikes.md) | Enrolment API | Enrolment | Backend |
 | [Session Cache](runbooks/session-cache.md) | Redis / ElastiCache | Identity Platform | Backend |
 | [Common CloudWatch Errors](runbooks/common-cloudwatch-errors.md) | CloudWatch | Platform Ops | Infrastructure |
+| [Cognito Rate Limits](runbooks/cognito-rate-limits.md) | Cognito User Pool | Identity Platform | Backend |
+| [Session Revocation](runbooks/session-revocation.md) | Cognito User Pool | Identity Platform | Security |
+| [Token Cache Refresh](runbooks/token-cache-refresh.md) | OIDC / JWKS Cache | Identity Platform | Backend |
+| [Account Suspension](runbooks/account-suspension.md) | Cognito User Pool | Trust & Safety | Security |
 
 ## How-To Guides
 
@@ -30,6 +36,8 @@ The KB is now a DynamoDB-backed system with full CRUD, versioning, and search â€
 | [WAF IP Blocking Guide](runbooks/waf-ip-blocking-guide.md) | WAF | Security | Security |
 | [Secrets Rotation Guide](runbooks/secrets-rotation-guide.md) | Secrets Manager | Security | Security |
 | [Regional Failover Procedure](runbooks/regional-failover-procedure.md) | Route 53 / RDS | Platform Engineering | Infrastructure |
+| [Audit Export Procedure](runbooks/audit-export-procedure.md) | DynamoDB Audit Table | Platform Ops | Security |
+| [Data Subject Access Request](runbooks/data-subject-access-request.md) | ScotAccount Data | Trust & Safety | Security |
 
 ## Architecture & Reference
 
@@ -38,6 +46,7 @@ The KB is now a DynamoDB-backed system with full CRUD, versioning, and search â€
 | [Architecture Overview](runbooks/architecture-overview.md) | Platform | Platform Engineering | Infrastructure |
 | [CommandBridge User Guide](runbooks/commandbridge-user-guide.md) | CommandBridge | Platform Ops | Frontend |
 | [AWS Service Dependencies](runbooks/aws-service-dependencies.md) | Platform | Platform Engineering | Infrastructure |
+| [ScotAccount Onboarding Checklist](runbooks/scotaccount-onboarding-checklist.md) | ScotAccount Integration | Platform Ops | Backend |
 
 ## Escalation & Process
 
@@ -49,7 +58,7 @@ The KB is now a DynamoDB-backed system with full CRUD, versioning, and search â€
 ## Seeding
 
 ```bash
-python scripts/seed_kb.py
+python3 scripts/seed_kb.py
 ```
 
 This parses YAML frontmatter + markdown content from each file and inserts them as version 1 articles into the `commandbridge-dev-kb` DynamoDB table.
