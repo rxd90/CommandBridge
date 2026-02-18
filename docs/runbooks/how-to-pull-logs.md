@@ -11,7 +11,7 @@ last_reviewed: 2026-02-14
 
 ## Overview
 
-The **Pull Logs** action streams and filters CloudWatch log groups for a specific service or time range. This is the safest and most commonly used action — available to all roles (L1+) without approval.
+The **Pull Logs** action streams and filters CloudWatch log groups for a specific service or time range. This is the safest and most commonly used action - available to all roles (L1+) without approval.
 
 ## When to Use
 
@@ -54,7 +54,7 @@ The response includes matching log events with:
 
 - Start with a **short time range** (15-30 min) to avoid pulling excessive data
 - Use **specific filter patterns** rather than broad searches
-- If you get no results, verify the **log group name** is correct — use the CloudWatch console to browse available groups
+- If you get no results, verify the **log group name** is correct - use the CloudWatch console to browse available groups
 - Combine with the **CloudWatch Insights** queries from the relevant troubleshooting runbook for deeper analysis
 
 ## Escalation

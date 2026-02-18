@@ -4,10 +4,12 @@ service: Cognito User Pool
 owner: Identity Platform
 category: Backend
 tags: [cognito, rate-limit, throttling, auth, scotaccount]
-last_reviewed: 2026-02-16
+last_reviewed: 2026-02-17
 ---
 
 # Cognito Rate Limits: handling throttling during traffic spikes
+
+> **Note:** Replace `$USER_POOL_ID` in commands below with the value from `terraform output cognito_user_pool_id`.
 
 ## Symptoms
 
@@ -32,7 +34,7 @@ ScotAccount enrolment campaigns (e.g. Disclosure Scotland, Social Security Scotl
     aws cloudwatch get-metric-statistics \
       --namespace AWS/Cognito \
       --metric-name ThrottleCount \
-      --dimensions Name=UserPool,Value=eu-west-2_quMz1HdKl \
+      --dimensions Name=UserPool,Value=$USER_POOL_ID \
       --start-time $(date -d '1 hour ago' -u +%Y-%m-%dT%H:%M:%S) \
       --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
       --period 300 \

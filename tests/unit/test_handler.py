@@ -8,7 +8,7 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-# Patch audit module before handler import — audit.py creates a DynamoDB
+# Patch audit module before handler import - audit.py creates a DynamoDB
 # resource at module level which would fail without AWS credentials.
 import sys
 import types
@@ -17,13 +17,14 @@ mock_audit = types.ModuleType('shared.audit')
 mock_audit.log_action = MagicMock(return_value={'id': 'test', 'timestamp': 0})
 sys.modules['shared.audit'] = mock_audit
 
-# Patch users module before handler import — users.py creates a DynamoDB
+# Patch users module before handler import - users.py creates a DynamoDB
 # resource at module level which would fail without AWS credentials.
 mock_users = types.ModuleType('shared.users')
 mock_users.get_user_role = MagicMock(return_value=None)  # fallback to JWT groups
 mock_users.get_user = MagicMock(return_value=None)
 mock_users.list_users = MagicMock(return_value=[])
 mock_users.update_user = MagicMock(return_value=None)
+mock_users.create_user = MagicMock(return_value={'email': 'new@test.com', 'name': 'New', 'role': 'L1-operator', 'team': 'Ops', 'active': True})
 mock_users.VALID_ROLES = {'L1-operator', 'L2-engineer', 'L3-admin'}
 sys.modules['shared.users'] = mock_users
 
@@ -32,14 +33,30 @@ mock_audit.query_by_user = MagicMock(return_value={'entries': [], 'cursor': None
 mock_audit.query_by_action = MagicMock(return_value={'entries': [], 'cursor': None})
 mock_audit.list_recent = MagicMock(return_value={'entries': [], 'cursor': None})
 
+# Patch activity module before handler import - activity.py creates a DynamoDB
+# resource at module level which would fail without AWS credentials.
+mock_activity = types.ModuleType('shared.activity')
+mock_activity.log_activity_batch = MagicMock(return_value=3)
+mock_activity.query_user_activity = MagicMock(return_value={'events': [], 'cursor': None})
+mock_activity.query_by_event_type = MagicMock(return_value={'events': [], 'cursor': None})
+mock_activity.get_active_users = MagicMock(return_value=[])
+sys.modules['shared.activity'] = mock_activity
+
 from actions.handler import lambda_handler
 from conftest import make_apigw_event
 
 
 @pytest.fixture(autouse=True)
-def _ensure_audit_mock():
-    """Re-set shared.audit mock — test_audit.py reloads the real module."""
+def _ensure_mocks():
+    """Re-set shared module mocks - other test files reload real modules which mutates these objects."""
     sys.modules['shared.audit'] = mock_audit
+    sys.modules['shared.activity'] = mock_activity
+    # Reload mutates mock_activity in-place (same object), replacing MagicMock attrs
+    # with real functions.  Restore them here.
+    mock_activity.log_activity_batch = MagicMock(return_value=3)
+    mock_activity.query_user_activity = MagicMock(return_value={'events': [], 'cursor': None})
+    mock_activity.query_by_event_type = MagicMock(return_value={'events': [], 'cursor': None})
+    mock_activity.get_active_users = MagicMock(return_value=[])
 
 
 # ---------------------------------------------------------------------------
@@ -80,7 +97,7 @@ class TestRouting:
 
 
 # ---------------------------------------------------------------------------
-# Input validation — /actions/execute
+# Input validation - /actions/execute
 # ---------------------------------------------------------------------------
 class TestExecuteValidation:
     def test_empty_body_returns_400(self):
@@ -165,7 +182,7 @@ class TestRBACEnforcement:
             mock_exec.return_value = MagicMock(side_effect=Exception('boto3 error'))
             response = lambda_handler(event, None)
             assert response['statusCode'] == 500
-            assert 'boto3 error' in json.loads(response['body'])['message']
+            assert 'Action failed' in json.loads(response['body'])['message']
 
 
 # ---------------------------------------------------------------------------
@@ -200,7 +217,7 @@ class TestRequestEndpoint:
 # ---------------------------------------------------------------------------
 class TestGroupsNormalization:
     def test_single_group_string_works(self):
-        """cognito:groups can be a string (single group) — handler normalizes."""
+        """cognito:groups can be a string (single group) - handler normalizes."""
         event = make_apigw_event('/actions/permissions', 'GET')
         event['requestContext']['authorizer']['jwt']['claims']['cognito:groups'] = 'L1-operator'
         response = lambda_handler(event, None)
@@ -251,12 +268,14 @@ class TestAdminRoutes:
         mock_users.get_user.reset_mock()
         mock_users.list_users.reset_mock()
         mock_users.update_user.reset_mock()
+        mock_users.create_user.reset_mock()
         mock_audit.log_action.reset_mock()
         # Defaults
         mock_users.get_user_role.return_value = None
         mock_users.get_user.return_value = None
         mock_users.list_users.return_value = []
         mock_users.update_user.return_value = None
+        mock_users.create_user.return_value = {'email': 'new@test.com', 'name': 'New', 'role': 'L1-operator', 'team': 'Ops', 'active': True}
 
     def test_list_users_requires_l3(self):
         """L1 and L2 should get 403 on /admin/users."""
@@ -343,6 +362,17 @@ class TestAdminRoutes:
         assert response['statusCode'] == 200
         assert 'L2-engineer' in json.loads(response['body'])['message']
 
+    def test_set_role_blocks_self_change(self):
+        """Admins cannot change their own role."""
+        event = make_apigw_event(
+            '/admin/users/admin%40scotgov.uk/role', 'POST',
+            body={'role': 'L1-operator'},
+            email='admin@scotgov.uk', groups=['L3-admin'],
+        )
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 400
+        assert 'Cannot change your own role' in json.loads(response['body'])['message']
+
     def test_url_decoding(self):
         """Emails with %40 in the path are correctly decoded to @."""
         mock_users.get_user.return_value = {
@@ -372,7 +402,124 @@ class TestAdminRoutes:
 
 
 # ---------------------------------------------------------------------------
-# Request endpoint — ticket validation
+# Admin create user
+# ---------------------------------------------------------------------------
+class TestAdminCreateUser:
+    """Tests for POST /admin/users (create user)."""
+
+    def setup_method(self):
+        mock_users.get_user_role.reset_mock()
+        mock_users.get_user.reset_mock()
+        mock_users.create_user.reset_mock()
+        mock_audit.log_action.reset_mock()
+        mock_users.get_user_role.return_value = None
+        mock_users.get_user.return_value = None  # user does not exist yet
+        mock_users.create_user.return_value = {
+            'email': 'new@scotgov.uk', 'name': 'New User',
+            'role': 'L1-operator', 'team': 'Ops', 'active': True,
+        }
+
+    def test_create_user_requires_l3(self):
+        for role in ['L1-operator', 'L2-engineer']:
+            event = make_apigw_event('/admin/users', 'POST',
+                body={'email': 'new@scotgov.uk', 'name': 'New', 'role': 'L1-operator', 'team': 'Ops'},
+                groups=[role])
+            response = lambda_handler(event, None)
+            assert response['statusCode'] == 403, f'{role} should be denied'
+
+    def test_create_user_missing_fields(self):
+        event = make_apigw_event('/admin/users', 'POST',
+            body={'email': 'new@scotgov.uk'},
+            email='admin@scotgov.uk', groups=['L3-admin'])
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 400
+        assert 'required' in json.loads(response['body'])['message']
+
+    def test_create_user_invalid_role(self):
+        event = make_apigw_event('/admin/users', 'POST',
+            body={'email': 'new@scotgov.uk', 'name': 'New', 'role': 'INVALID', 'team': 'Ops'},
+            email='admin@scotgov.uk', groups=['L3-admin'])
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 400
+        assert 'Invalid role' in json.loads(response['body'])['message']
+
+    def test_create_user_invalid_email(self):
+        event = make_apigw_event('/admin/users', 'POST',
+            body={'email': 'notanemail', 'name': 'New', 'role': 'L1-operator', 'team': 'Ops'},
+            email='admin@scotgov.uk', groups=['L3-admin'])
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 400
+        assert 'email' in json.loads(response['body'])['message'].lower()
+
+    def test_create_user_already_exists(self):
+        mock_users.get_user.return_value = {'email': 'exists@scotgov.uk', 'active': True}
+        event = make_apigw_event('/admin/users', 'POST',
+            body={'email': 'exists@scotgov.uk', 'name': 'Exists', 'role': 'L1-operator', 'team': 'Ops'},
+            email='admin@scotgov.uk', groups=['L3-admin'])
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 409
+        assert 'already exists' in json.loads(response['body'])['message']
+
+    @patch('actions.handler.boto3')
+    def test_create_user_success(self, mock_boto3):
+        """Successful user creation returns 201 with temporary password."""
+        mock_cognito = MagicMock()
+        mock_boto3.client.return_value = mock_cognito
+
+        event = make_apigw_event('/admin/users', 'POST',
+            body={'email': 'new@scotgov.uk', 'name': 'New User', 'role': 'L1-operator', 'team': 'Ops'},
+            email='admin@scotgov.uk', groups=['L3-admin'])
+
+        with patch.dict('os.environ', {'USER_POOL_ID': 'pool-123'}):
+            response = lambda_handler(event, None)
+
+        assert response['statusCode'] == 201
+        body = json.loads(response['body'])
+        assert 'temporary_password' in body
+        assert len(body['temporary_password']) == 16
+        assert 'created successfully' in body['message']
+        mock_cognito.admin_create_user.assert_called_once()
+        mock_cognito.admin_add_user_to_group.assert_called_once()
+        mock_users.create_user.assert_called_once()
+
+    @patch('actions.handler.boto3')
+    def test_create_user_cognito_failure_returns_500(self, mock_boto3):
+        mock_cognito = MagicMock()
+        mock_cognito.admin_create_user.side_effect = Exception('Cognito error')
+        mock_boto3.client.return_value = mock_cognito
+
+        event = make_apigw_event('/admin/users', 'POST',
+            body={'email': 'new@scotgov.uk', 'name': 'New', 'role': 'L1-operator', 'team': 'Ops'},
+            email='admin@scotgov.uk', groups=['L3-admin'])
+
+        with patch.dict('os.environ', {'USER_POOL_ID': 'pool-123'}):
+            response = lambda_handler(event, None)
+
+        assert response['statusCode'] == 500
+        assert 'Cognito' in json.loads(response['body'])['message']
+
+    @patch('actions.handler.boto3')
+    def test_create_user_dynamo_failure_rolls_back_cognito(self, mock_boto3):
+        """If DynamoDB creation fails, the Cognito user should be deleted."""
+        mock_cognito = MagicMock()
+        mock_boto3.client.return_value = mock_cognito
+        mock_users.create_user.side_effect = Exception('DynamoDB error')
+
+        event = make_apigw_event('/admin/users', 'POST',
+            body={'email': 'new@scotgov.uk', 'name': 'New', 'role': 'L1-operator', 'team': 'Ops'},
+            email='admin@scotgov.uk', groups=['L3-admin'])
+
+        with patch.dict('os.environ', {'USER_POOL_ID': 'pool-123'}):
+            response = lambda_handler(event, None)
+
+        assert response['statusCode'] == 500
+        mock_cognito.admin_delete_user.assert_called_once()
+        # Reset side effect
+        mock_users.create_user.side_effect = None
+
+
+# ---------------------------------------------------------------------------
+# Request endpoint - ticket validation
 # ---------------------------------------------------------------------------
 class TestRequestTicketValidation:
     def test_bad_ticket_format_returns_400(self):
@@ -390,3 +537,97 @@ class TestRequestTicketValidation:
             groups=['L1-operator'])
         response = lambda_handler(event, None)
         assert response['statusCode'] in (202, 403), f'Failed for ticket {ticket}'
+
+
+# ---------------------------------------------------------------------------
+# Activity routes
+# ---------------------------------------------------------------------------
+class TestActivityRoutes:
+    def setup_method(self):
+        mock_activity.log_activity_batch.reset_mock()
+        mock_activity.query_user_activity.reset_mock()
+        mock_activity.query_by_event_type.reset_mock()
+        mock_activity.get_active_users.reset_mock()
+        mock_activity.log_activity_batch.return_value = 3
+        mock_activity.query_user_activity.return_value = {'events': [], 'cursor': None}
+        mock_activity.query_by_event_type.return_value = {'events': [], 'cursor': None}
+        mock_activity.get_active_users.return_value = []
+        mock_users.get_user_role.return_value = None
+
+    def test_post_activity_returns_200(self):
+        event = make_apigw_event('/activity', 'POST',
+            body={'events': [
+                {'event_type': 'page_view', 'timestamp': 1700000000000},
+                {'event_type': 'button_click', 'timestamp': 1700000001000},
+            ]},
+            groups=['L1-operator'])
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 200
+        body = json.loads(response['body'])
+        assert body['ingested'] == 3
+
+    def test_post_activity_missing_events_returns_400(self):
+        event = make_apigw_event('/activity', 'POST',
+            body={},
+            groups=['L1-operator'])
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 400
+
+    def test_post_activity_empty_events_returns_400(self):
+        event = make_apigw_event('/activity', 'POST',
+            body={'events': []},
+            groups=['L1-operator'])
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 400
+
+    def test_post_activity_invalid_events_returns_400(self):
+        event = make_apigw_event('/activity', 'POST',
+            body={'events': [{'event_type': '', 'timestamp': 1}]},
+            groups=['L1-operator'])
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 400
+
+    def test_get_activity_self_only_for_non_admin(self):
+        spy = MagicMock(return_value={'events': [], 'cursor': None})
+        with patch('actions.handler.query_user_activity', spy):
+            event = make_apigw_event('/activity', 'GET',
+                email='alice@scotgov.uk', groups=['L1-operator'])
+            event['queryStringParameters'] = {'user': 'bob@scotgov.uk'}
+            response = lambda_handler(event, None)
+            assert response['statusCode'] == 200
+            # Non-admin should query self, not the requested user
+            assert spy.call_args[1]['user'] == 'alice@scotgov.uk'
+
+    def test_get_activity_admin_can_query_any_user(self):
+        spy = MagicMock(return_value={'events': [], 'cursor': None})
+        with patch('actions.handler.query_user_activity', spy):
+            event = make_apigw_event('/activity', 'GET',
+                email='admin@scotgov.uk', groups=['L3-admin'])
+            event['queryStringParameters'] = {'user': 'bob@scotgov.uk'}
+            response = lambda_handler(event, None)
+            assert response['statusCode'] == 200
+            assert spy.call_args[1]['user'] == 'bob@scotgov.uk'
+
+    def test_get_active_users_admin_only(self):
+        event = make_apigw_event('/activity', 'GET',
+            email='admin@scotgov.uk', groups=['L3-admin'])
+        event['queryStringParameters'] = {'active': 'true'}
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 200
+        body = json.loads(response['body'])
+        assert 'active_users' in body
+
+    def test_get_activity_by_event_type_admin(self):
+        event = make_apigw_event('/activity', 'GET',
+            email='admin@scotgov.uk', groups=['L3-admin'])
+        event['queryStringParameters'] = {'event_type': 'page_view'}
+        response = lambda_handler(event, None)
+        assert response['statusCode'] == 200
+
+    def test_get_activity_by_event_type_non_admin_denied(self):
+        event = make_apigw_event('/activity', 'GET',
+            email='alice@scotgov.uk', groups=['L1-operator'])
+        event['queryStringParameters'] = {'event_type': 'page_view'}
+        response = lambda_handler(event, None)
+        # Non-admin with event_type but no user should still query self
+        assert response['statusCode'] == 200

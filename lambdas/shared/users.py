@@ -8,7 +8,7 @@ import os
 import boto3
 from datetime import datetime, timezone
 
-_table_name = os.environ.get('USERS_TABLE', 'commandbridge-prod-users')
+_table_name = os.environ.get('USERS_TABLE', 'commandbridge-dev-users')
 _dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'eu-west-2'))
 _table = _dynamodb.Table(_table_name)
 

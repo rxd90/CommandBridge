@@ -39,7 +39,7 @@ export function ArticlePage() {
         const res = await getKBVersions(id);
         setVersions(res.versions);
       } catch {
-        // silently fail version loading
+        setError('Failed to load version history');
       }
     }
   }, [id, versions.length]);
@@ -51,7 +51,7 @@ export function ArticlePage() {
       setArticle(res.article);
       setViewingVersion(ver);
     } catch {
-      // silently fail
+      setError(`Failed to load version ${ver}`);
     }
   }, [id]);
 
@@ -62,7 +62,7 @@ export function ArticlePage() {
       setArticle(res.article);
       setViewingVersion(null);
     } catch {
-      // silently fail
+      setError('Failed to load latest version');
     }
   }, [id]);
 
@@ -96,7 +96,7 @@ export function ArticlePage() {
         {article.owner && (
           <span className="cb_kb-article-meta__item"><User /> {article.owner}</span>
         )}
-        <span className="cb_kb-article-meta__item"><Clock /> Updated {article.updated_at?.slice(0, 10)}</span>
+        {article.updated_at && <span className="cb_kb-article-meta__item"><Clock /> Updated {article.updated_at.slice(0, 10)}</span>}
         <span className="cb_kb-article-meta__item">v{article.version}</span>
         {article.tags && article.tags.length > 0 && (
           <div className="cb_kb-article-meta__tags">

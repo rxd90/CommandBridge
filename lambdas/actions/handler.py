@@ -6,9 +6,14 @@ JWT is validated by API Gateway authorizer before this code runs.
 
 import json
 import os
+import secrets
+import string
 import sys
 import re
+import time
 from urllib.parse import unquote
+
+import boto3
 
 # Add parent dir to path for shared modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -16,7 +21,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from shared.rbac import check_permission, get_actions_for_role
 from shared.audit import log_action
 from shared import kb
-from shared.users import get_user_role, list_users, update_user, get_user, VALID_ROLES
+from shared.users import get_user_role, list_users, update_user, get_user, create_user, VALID_ROLES
+from shared.activity import log_activity_batch, query_user_activity, query_by_event_type, get_active_users
 
 
 def lambda_handler(event, context):
@@ -75,6 +81,8 @@ def lambda_handler(event, context):
         return _handle_kb_delete(article_id, user_email, user_groups)
 
     # Admin routes
+    elif path == '/admin/users' and method == 'POST':
+        return _handle_admin_create_user(event, user_email, user_groups)
     elif path == '/admin/users' and method == 'GET':
         return _handle_admin_list_users(user_email, user_groups)
     elif re.match(r'^/admin/users/[^/]+/disable$', path) and method == 'POST':
@@ -87,18 +95,24 @@ def lambda_handler(event, context):
         target_email = unquote(path.split('/')[3])
         return _handle_admin_set_role(event, target_email, user_email, user_groups)
 
+    # Activity routes
+    elif path == '/activity' and method == 'POST':
+        return _handle_activity_ingest(event, user_email)
+    elif path == '/activity' and method == 'GET':
+        return _handle_activity_query(event, user_email, user_groups)
+
     else:
         return _response(404, {'message': 'Not found'})
 
 
 def _handle_permissions(user_groups):
-    """GET /actions/permissions — return actions filtered by role."""
+    """GET /actions/permissions - return actions filtered by role."""
     actions = get_actions_for_role(user_groups)
     return _response(200, {'actions': actions})
 
 
 def _handle_execute(event, user_email, user_groups):
-    """POST /actions/execute — execute an action if permitted."""
+    """POST /actions/execute - execute an action if permitted."""
     body = _parse_body(event)
     if not body:
         return _response(400, {'message': 'Invalid request body'})
@@ -139,11 +153,11 @@ def _handle_execute(event, user_email, user_groups):
     except Exception as e:
         log_action(user_email, action_id, body.get('target', ''), ticket, 'failed',
                    details={'error': str(e)})
-        return _response(500, {'message': f'Action failed: {str(e)}'})
+        return _response(500, {'message': 'Action failed. Check audit log for details.'})
 
 
 def _handle_request(event, user_email, user_groups):
-    """POST /actions/request — submit an approval request for a high-risk action."""
+    """POST /actions/request - submit an approval request for a high-risk action."""
     body = _parse_body(event)
     if not body:
         return _response(400, {'message': 'Invalid request body'})
@@ -173,7 +187,7 @@ def _handle_request(event, user_email, user_groups):
 
 
 def _handle_audit(event, user_email, user_groups):
-    """GET /actions/audit — return recent audit entries from DynamoDB."""
+    """GET /actions/audit - return recent audit entries from DynamoDB."""
     from shared.audit import query_by_user, query_by_action, list_recent
 
     params = event.get('queryStringParameters') or {}
@@ -210,7 +224,7 @@ def _has_delete_access(user_groups):
 # ── KB route handlers ────────────────────────────────────────────────
 
 def _handle_kb_list(event):
-    """GET /kb — list latest articles with search, service filter, pagination."""
+    """GET /kb - list latest articles with search, service filter, pagination."""
     params = event.get('queryStringParameters') or {}
     try:
         kb_limit = min(int(params.get('limit', 25)), 100)
@@ -227,7 +241,7 @@ def _handle_kb_list(event):
 
 
 def _handle_kb_get(article_id):
-    """GET /kb/{id} — get a single article (latest version)."""
+    """GET /kb/{id} - get a single article (latest version)."""
     article = kb.get_article(article_id)
     if not article:
         return _response(404, {'message': 'Article not found'})
@@ -235,7 +249,7 @@ def _handle_kb_get(article_id):
 
 
 def _handle_kb_get_versions(article_id):
-    """GET /kb/{id}/versions — list all versions of an article."""
+    """GET /kb/{id}/versions - list all versions of an article."""
     versions = kb.get_versions(article_id)
     if not versions:
         return _response(404, {'message': 'Article not found'})
@@ -243,7 +257,7 @@ def _handle_kb_get_versions(article_id):
 
 
 def _handle_kb_get_version(article_id, version):
-    """GET /kb/{id}/versions/{ver} — get a specific version."""
+    """GET /kb/{id}/versions/{ver} - get a specific version."""
     article = kb.get_article(article_id, version=int(version))
     if not article:
         return _response(404, {'message': 'Version not found'})
@@ -251,7 +265,7 @@ def _handle_kb_get_version(article_id, version):
 
 
 def _handle_kb_create(event, user_email, user_groups):
-    """POST /kb — create a new article (L2+ only)."""
+    """POST /kb - create a new article (L2+ only)."""
     if not _has_write_access(user_groups):
         log_action(user_email, 'kb-denied', '', '', 'denied',
                    details={'attempted': 'create'})
@@ -284,7 +298,7 @@ def _handle_kb_create(event, user_email, user_groups):
 
 
 def _handle_kb_update(event, article_id, user_email, user_groups):
-    """PUT /kb/{id} — update an article, creating a new version (L2+ only)."""
+    """PUT /kb/{id} - update an article, creating a new version (L2+ only)."""
     if not _has_write_access(user_groups):
         log_action(user_email, 'kb-denied', article_id, '', 'denied',
                    details={'attempted': 'update'})
@@ -314,7 +328,7 @@ def _handle_kb_update(event, article_id, user_email, user_groups):
 
 
 def _handle_kb_delete(article_id, user_email, user_groups):
-    """DELETE /kb/{id} — delete all versions of an article (L3 only)."""
+    """DELETE /kb/{id} - delete all versions of an article (L3 only)."""
     if not _has_delete_access(user_groups):
         log_action(user_email, 'kb-denied', article_id, '', 'denied',
                    details={'attempted': 'delete'})
@@ -342,7 +356,7 @@ def _is_admin(user_groups):
 
 
 def _handle_admin_list_users(user_email, user_groups):
-    """GET /admin/users — list all users from DynamoDB."""
+    """GET /admin/users - list all users from DynamoDB."""
     if not _is_admin(user_groups):
         return _response(403, {'message': 'L3 admin access required'})
 
@@ -351,7 +365,7 @@ def _handle_admin_list_users(user_email, user_groups):
 
 
 def _handle_admin_disable_user(target_email, user_email, user_groups):
-    """POST /admin/users/{email}/disable — disable a user."""
+    """POST /admin/users/{email}/disable - disable a user."""
     if not _is_admin(user_groups):
         return _response(403, {'message': 'L3 admin access required'})
 
@@ -368,7 +382,7 @@ def _handle_admin_disable_user(target_email, user_email, user_groups):
 
 
 def _handle_admin_enable_user(target_email, user_email, user_groups):
-    """POST /admin/users/{email}/enable — enable a user."""
+    """POST /admin/users/{email}/enable - enable a user."""
     if not _is_admin(user_groups):
         return _response(403, {'message': 'L3 admin access required'})
 
@@ -376,15 +390,27 @@ def _handle_admin_enable_user(target_email, user_email, user_groups):
     if not user:
         return _response(404, {'message': 'User not found'})
 
+    # Re-enable in Cognito so the user can log in again
+    user_pool_id = os.environ.get('USER_POOL_ID')
+    if user_pool_id:
+        cognito = boto3.client('cognito-idp', region_name=os.environ.get('AWS_REGION', 'eu-west-2'))
+        try:
+            cognito.admin_enable_user(UserPoolId=user_pool_id, Username=target_email)
+        except Exception:
+            pass  # User may not exist in Cognito yet (DynamoDB-only)
+
     update_user(target_email, {'active': True}, user_email)
     log_action(user_email, 'admin-enable-user', target_email, '', 'success')
     return _response(200, {'message': f'User {target_email} enabled'})
 
 
 def _handle_admin_set_role(event, target_email, user_email, user_groups):
-    """POST /admin/users/{email}/role — change a user's role."""
+    """POST /admin/users/{email}/role - change a user's role."""
     if not _is_admin(user_groups):
         return _response(403, {'message': 'L3 admin access required'})
+
+    if target_email.lower() == user_email.lower():
+        return _response(400, {'message': 'Cannot change your own role'})
 
     body = _parse_body(event)
     if not body or 'role' not in body:
@@ -399,10 +425,205 @@ def _handle_admin_set_role(event, target_email, user_email, user_groups):
         return _response(404, {'message': 'User not found'})
 
     old_role = user.get('role', 'unknown')
+
+    # Update Cognito group membership to match new role
+    user_pool_id = os.environ.get('USER_POOL_ID')
+    if user_pool_id:
+        cognito = boto3.client('cognito-idp', region_name=os.environ.get('AWS_REGION', 'eu-west-2'))
+        try:
+            if old_role in VALID_ROLES:
+                cognito.admin_remove_user_from_group(
+                    UserPoolId=user_pool_id, Username=target_email, GroupName=old_role)
+        except Exception:
+            pass  # Group may not exist or user not in group
+        try:
+            cognito.admin_add_user_to_group(
+                UserPoolId=user_pool_id, Username=target_email, GroupName=new_role)
+        except Exception as e:
+            return _response(500, {'message': f'Failed to update Cognito group: {str(e)}'})
+
     update_user(target_email, {'role': new_role}, user_email)
     log_action(user_email, 'admin-set-role', target_email, '', 'success',
                details={'old_role': old_role, 'new_role': new_role})
     return _response(200, {'message': f'User {target_email} role changed to {new_role}'})
+
+
+def _handle_admin_create_user(event, user_email, user_groups):
+    """POST /admin/users - create a new user in Cognito and DynamoDB."""
+    if not _is_admin(user_groups):
+        return _response(403, {'message': 'L3 admin access required'})
+
+    body = _parse_body(event)
+    if not body:
+        return _response(400, {'message': 'Invalid request body'})
+
+    email = (body.get('email') or '').strip().lower()
+    name = (body.get('name') or '').strip()
+    role = (body.get('role') or '').strip()
+    team = (body.get('team') or '').strip()
+
+    if not email or not name or not role or not team:
+        return _response(400, {'message': 'email, name, role, and team are required'})
+
+    if role not in VALID_ROLES:
+        return _response(400, {'message': f'Invalid role. Must be one of: {", ".join(sorted(VALID_ROLES))}'})
+
+    if '@' not in email or '.' not in email.split('@')[-1]:
+        return _response(400, {'message': 'Invalid email format'})
+
+    existing = get_user(email)
+    if existing:
+        return _response(409, {'message': f'User {email} already exists'})
+
+    user_pool_id = os.environ.get('USER_POOL_ID')
+    if not user_pool_id:
+        return _response(500, {'message': 'Cognito user pool not configured'})
+
+    temp_password = _generate_temp_password()
+
+    cognito = boto3.client('cognito-idp', region_name=os.environ.get('AWS_REGION', 'eu-west-2'))
+
+    try:
+        cognito.admin_create_user(
+            UserPoolId=user_pool_id,
+            Username=email,
+            UserAttributes=[
+                {'Name': 'email', 'Value': email},
+                {'Name': 'email_verified', 'Value': 'true'},
+                {'Name': 'name', 'Value': name},
+            ],
+            TemporaryPassword=temp_password,
+            MessageAction='SUPPRESS',
+        )
+        cognito.admin_add_user_to_group(
+            UserPoolId=user_pool_id,
+            Username=email,
+            GroupName=role,
+        )
+    except Exception as e:
+        error_name = type(e).__name__
+        if 'UsernameExistsException' in error_name:
+            return _response(409, {'message': f'User {email} already exists in Cognito'})
+        return _response(500, {'message': f'Failed to create Cognito user: {str(e)}'})
+
+    try:
+        create_user(email, name, role, team, user_email)
+    except Exception as e:
+        # Rollback Cognito user on DynamoDB failure
+        try:
+            cognito.admin_delete_user(UserPoolId=user_pool_id, Username=email)
+        except Exception:
+            pass
+        return _response(500, {'message': f'Failed to create user record: {str(e)}'})
+
+    log_action(user_email, 'admin-create-user', email, '', 'success',
+               details={'name': name, 'role': role, 'team': team})
+
+    return _response(201, {
+        'message': f'User {email} created successfully',
+        'temporary_password': temp_password,
+    })
+
+
+def _generate_temp_password(length=16):
+    """Generate a secure temporary password meeting Cognito requirements."""
+    password = [
+        secrets.choice(string.ascii_uppercase),
+        secrets.choice(string.ascii_lowercase),
+        secrets.choice(string.digits),
+        secrets.choice('!@#$%^&*()-_=+'),
+    ]
+    alphabet = string.ascii_letters + string.digits + '!@#$%^&*()-_=+'
+    password.extend(secrets.choice(alphabet) for _ in range(length - len(password)))
+    secrets.SystemRandom().shuffle(password)
+    return ''.join(password)
+
+
+# ── Activity route handlers ──────────────────────────────────────────
+
+def _handle_activity_ingest(event, user_email):
+    """POST /activity - ingest a batch of frontend activity events."""
+    body = _parse_body(event)
+    if not body or 'events' not in body:
+        return _response(400, {'message': 'events array is required'})
+
+    events = body['events']
+    if not isinstance(events, list) or len(events) == 0:
+        return _response(400, {'message': 'events must be a non-empty array'})
+
+    # Cap batch size to prevent abuse
+    if len(events) > 100:
+        events = events[:100]
+
+    # Server-side stamp each event with authenticated user
+    sanitized = []
+    for evt in events:
+        event_type = evt.get('event_type', '').strip() if isinstance(evt.get('event_type'), str) else ''
+        if not event_type:
+            continue
+        sanitized.append({
+            'user': user_email,
+            'event_type': event_type,
+            'timestamp': int(evt.get('timestamp', int(time.time() * 1000))),
+            'data': evt.get('data') or {},
+        })
+
+    if not sanitized:
+        return _response(400, {'message': 'No valid events in batch'})
+
+    count = log_activity_batch(sanitized)
+    return _response(200, {'ingested': count})
+
+
+def _handle_activity_query(event, user_email, user_groups):
+    """GET /activity - query activity events (L3 admin: any user; others: self only)."""
+    params = event.get('queryStringParameters') or {}
+
+    try:
+        limit = min(int(params.get('limit', 50)), 200)
+    except (TypeError, ValueError):
+        limit = 50
+
+    cursor = params.get('cursor')
+    target_user = params.get('user')
+    event_type = params.get('event_type')
+
+    # Non-admin users can only view their own activity
+    if not _is_admin(user_groups):
+        target_user = user_email
+
+    # Special query: active users (admin only)
+    if params.get('active') == 'true' and _is_admin(user_groups):
+        since = int(params.get('since_minutes', 15))
+        users = get_active_users(since_minutes=since)
+        return _response(200, {'active_users': users})
+
+    try:
+        start_time = int(params['start']) if params.get('start') else None
+        end_time = int(params['end']) if params.get('end') else None
+    except (ValueError, TypeError):
+        return _response(400, {'message': 'start and end must be numeric timestamps'})
+
+    # Query by event type (no user filter) - admin only
+    if event_type and not target_user:
+        if not _is_admin(user_groups):
+            return _response(403, {'message': 'L3 admin access required for cross-user queries'})
+        result = query_by_event_type(event_type, start_time, end_time, limit, cursor)
+        return _response(200, result)
+
+    # Query by user (default: self)
+    if not target_user:
+        target_user = user_email
+
+    result = query_user_activity(
+        user=target_user,
+        start_time=start_time,
+        end_time=end_time,
+        event_type=event_type,
+        limit=limit,
+        cursor=cursor,
+    )
+    return _response(200, result)
 
 
 def _get_executor(action_id):

@@ -24,7 +24,7 @@ shutil.copy2(_repo_actions, os.path.join(_lambdas_rbac, 'actions.json'))
 
 
 # ---------------------------------------------------------------------------
-# Fixtures — load the real RBAC JSON files
+# Fixtures - load the real RBAC JSON files
 # ---------------------------------------------------------------------------
 @pytest.fixture
 def rbac_actions():
@@ -55,7 +55,7 @@ def rbac_users_raw():
 
 
 # ---------------------------------------------------------------------------
-# Helper — build API Gateway HTTP API v2 events
+# Helper - build API Gateway HTTP API v2 events
 # ---------------------------------------------------------------------------
 def make_apigw_event(path, method='GET', body=None, email='test@scotgov.uk', groups=None):
     """Build a minimal API Gateway HTTP API v2 event.

@@ -49,7 +49,7 @@ This reference lists the most common error patterns found in ScotAccount CloudWa
 | `idv_vendor_timeout` | IDV provider not responding within SLA | Check IDV provider status page, escalate if >15 min |
 | `cifas_check_failed` | Fraud check returned error (not fraud result) | Check CIFAS connectivity, verify API credentials |
 | `enrolment_queue_full` | SQS queue depth exceeding threshold | Scale enrolment workers, consider pausing enrolments |
-| `duplicate_application` | User attempting re-enrolment | Normal flow — application idempotency check working |
+| `duplicate_application` | User attempting re-enrolment | Normal flow - application idempotency check working |
 
 ## Infrastructure Errors
 

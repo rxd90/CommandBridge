@@ -43,7 +43,7 @@ Our team is actively investigating and we will provide an update by <HH:MM UTC>.
 ### Leadership Brief (Email)
 
 ```
-Subject: [P<X>] <Short summary> — <HH:MM UTC> update
+Subject: [P<X>] <Short summary> - <HH:MM UTC> update
 
 Impact: <Number of users affected, regions, duration so far>
 Current status: <Investigating / Mitigating / Monitoring / Resolved>

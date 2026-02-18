@@ -47,3 +47,8 @@ output "users_table_name" {
   description = "DynamoDB users table name"
   value       = module.storage.users_table_name
 }
+
+output "activity_table_name" {
+  description = "DynamoDB activity table name"
+  value       = module.storage.activity_table_name
+}

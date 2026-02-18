@@ -15,10 +15,16 @@ def execute(body: dict) -> dict:
     appconfig = boto3.client("appconfig")
 
     apps = appconfig.list_applications()
-    app_id = next(a["Id"] for a in apps["Items"] if a["Name"] == application)
+    try:
+        app_id = next(a["Id"] for a in apps["Items"] if a["Name"] == application)
+    except StopIteration:
+        return {"status": "error", "message": f"AppConfig application '{application}' not found"}
 
     profiles = appconfig.list_configuration_profiles(ApplicationId=app_id)
-    profile_id = next(p["Id"] for p in profiles["Items"] if p["Name"] == profile)
+    try:
+        profile_id = next(p["Id"] for p in profiles["Items"] if p["Name"] == profile)
+    except StopIteration:
+        return {"status": "error", "message": f"AppConfig profile '{profile}' not found"}
 
     config = {"maintenance_mode": {"enabled": enabled}}
     appconfig.create_hosted_configuration_version(

@@ -8,10 +8,9 @@ Each article has id (hash key) + version (range key). The sparse GSI
 import boto3
 import os
 import time
-import json
-import base64
 import re
-from decimal import Decimal
+
+from shared.pagination import decimal_to_int, encode_cursor, decode_cursor
 
 _table_name = os.environ.get('KB_TABLE', 'commandbridge-dev-kb')
 _dynamodb = boto3.resource('dynamodb')
@@ -21,38 +20,10 @@ DEFAULT_LIMIT = 25
 MAX_LIMIT = 100
 
 
-def _decimal_to_int(obj):
-    """Convert DynamoDB Decimal types to int for JSON serialization."""
-    if isinstance(obj, Decimal):
-        return int(obj)
-    if isinstance(obj, dict):
-        return {k: _decimal_to_int(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [_decimal_to_int(i) for i in obj]
-    return obj
-
-
 def _article_response(item):
     """Format a DynamoDB item as an article response dict."""
     cleaned = {k: v for k, v in item.items() if not k.endswith('_lower')}
-    return _decimal_to_int(cleaned)
-
-
-def _encode_cursor(last_key):
-    """Encode DynamoDB LastEvaluatedKey as a URL-safe base64 cursor."""
-    if not last_key:
-        return None
-    return base64.urlsafe_b64encode(json.dumps(last_key, default=str).encode()).decode()
-
-
-def _decode_cursor(cursor):
-    """Decode a base64 cursor back to DynamoDB ExclusiveStartKey."""
-    if not cursor:
-        return None
-    try:
-        return json.loads(base64.urlsafe_b64decode(cursor).decode())
-    except Exception:
-        return None
+    return decimal_to_int(cleaned)
 
 
 def slugify(title):
@@ -70,7 +41,7 @@ def list_articles(search=None, service=None, category=None, cursor=None, limit=D
     Uses the latest-index GSI for efficient pagination.
     """
     limit = min(int(limit), MAX_LIMIT)
-    exclusive_start = _decode_cursor(cursor)
+    exclusive_start = decode_cursor(cursor)
 
     if service:
         # Use service-index GSI
@@ -119,13 +90,13 @@ def list_articles(search=None, service=None, category=None, cursor=None, limit=D
     articles = []
     for item in result.get('Items', []):
         cleaned = {k: v for k, v in item.items() if not k.endswith('_lower')}
-        article = _decimal_to_int(cleaned)
+        article = decimal_to_int(cleaned)
         article.pop('content', None)
         articles.append(article)
 
     return {
         'articles': articles,
-        'cursor': _encode_cursor(result.get('LastEvaluatedKey')),
+        'cursor': encode_cursor(result.get('LastEvaluatedKey')),
     }
 
 
@@ -159,7 +130,7 @@ def get_versions(article_id):
     )
     versions = []
     for item in result.get('Items', []):
-        v = _decimal_to_int(item)
+        v = decimal_to_int(item)
         v.pop('content', None)
         versions.append(v)
     return versions

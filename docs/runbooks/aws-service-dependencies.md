@@ -4,7 +4,7 @@ service: Platform
 owner: Platform Engineering
 category: Infrastructure
 tags: [aws, dependencies, services, topology, reference, blast-radius]
-last_reviewed: 2026-02-14
+last_reviewed: 2026-02-17
 ---
 
 # AWS Service Dependencies: blast radius and dependency map
@@ -19,15 +19,15 @@ Enrolment Flow:
   CloudFront → API Gateway → ECS (enrolment tasks) → IDV Provider (external) → RDS → DynamoDB
 
 Operational Flow (CommandBridge):
-  CloudFront → API Gateway → Lambda → DynamoDB (audit + KB)
+  CloudFront → API Gateway → Lambda → DynamoDB (audit + KB + users + activity)
 ```
 
 ## Service Dependency Matrix
 
 | If this fails... | These are affected | User impact |
 |---|---|---|
-| **CloudFront** | All user-facing services | Complete outage — no portal access |
-| **API Gateway** | Auth, Enrolment, CommandBridge | No API calls — all services degraded |
+| **CloudFront** | All user-facing services | Complete outage - no portal access |
+| **API Gateway** | Auth, Enrolment, CommandBridge | No API calls - all services degraded |
 | **Cognito** | Login, token refresh | Users cannot authenticate; existing sessions may continue briefly |
 | **EKS (auth pods)** | Login, MFA, session management | Authentication failures, login loops |
 | **ECS (enrolment)** | New account creation | Enrolment blocked; existing users unaffected |
@@ -36,7 +36,7 @@ Operational Flow (CommandBridge):
 | **Route 53** | DNS resolution | Gradual degradation as DNS TTLs expire |
 | **WAF** | Edge protection | Traffic unfiltered but still flows (fail-open) |
 | **Secrets Manager** | Service-to-service auth | Credential refresh failures; existing credentials may still work |
-| **DynamoDB** | CommandBridge audit + KB | Operational portal degraded; core ScotAccount services unaffected |
+| **DynamoDB** | CommandBridge audit, KB, users, activity | Operational portal degraded; core ScotAccount services unaffected |
 
 ## Third-Party Dependencies
 
@@ -68,7 +68,7 @@ Operational Flow (CommandBridge):
 ## Monitoring
 
 All services are monitored via CloudWatch alarms. Key dashboards:
-- **ScotAccount Overview** — aggregate health across all services
-- **Auth Health** — login rates, token validation, session metrics
-- **Enrolment Health** — application rates, IDV success, queue depth
-- **Infrastructure** — EKS/ECS resource utilisation, RDS connections, Redis memory
+- **ScotAccount Overview** - aggregate health across all services
+- **Auth Health** - login rates, token validation, session metrics
+- **Enrolment Health** - application rates, IDV success, queue depth
+- **Infrastructure** - EKS/ECS resource utilisation, RDS connections, Redis memory

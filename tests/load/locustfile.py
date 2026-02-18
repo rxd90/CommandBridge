@@ -33,7 +33,7 @@ class CommandBridgeUser(HttpUser):
 
     @task(5)
     def get_permissions(self):
-        """Dashboard load — most frequent action."""
+        """Dashboard load - most frequent action."""
         self.client.get('/actions/permissions', headers=self.headers)
 
     @task(2)
@@ -42,7 +42,7 @@ class CommandBridgeUser(HttpUser):
         self.client.post('/actions/execute', headers=self.headers, json={
             'action': 'pull-logs',
             'ticket': 'INC-LOAD-TEST',
-            'reason': 'Load test — pull logs',
+            'reason': 'Load test - pull logs',
         })
 
     @task(2)
@@ -51,7 +51,7 @@ class CommandBridgeUser(HttpUser):
         self.client.post('/actions/execute', headers=self.headers, json={
             'action': 'purge-cache',
             'ticket': 'INC-LOAD-TEST',
-            'reason': 'Load test — purge cache',
+            'reason': 'Load test - purge cache',
         })
 
     @task(1)
@@ -60,7 +60,7 @@ class CommandBridgeUser(HttpUser):
         self.client.post('/actions/request', headers=self.headers, json={
             'action': 'maintenance-mode',
             'ticket': 'CHG-LOAD-TEST',
-            'reason': 'Load test — maintenance mode request',
+            'reason': 'Load test - maintenance mode request',
         })
 
     @task(1)

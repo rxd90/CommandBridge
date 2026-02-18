@@ -84,7 +84,7 @@ resource "aws_dynamodb_table" "kb" {
     type = "S"
   }
 
-  # Sparse index — only items with is_latest="true" appear
+  # Sparse index - only items with is_latest="true" appear
   global_secondary_index {
     name            = "latest-index"
     hash_key        = "is_latest"
@@ -152,4 +152,51 @@ output "users_table_name" {
 
 output "users_table_arn" {
   value = aws_dynamodb_table.users.arn
+}
+
+resource "aws_dynamodb_table" "activity" {
+  name         = "${var.project_name}-${var.environment}-activity"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "user"
+  range_key    = "timestamp"
+
+  attribute {
+    name = "user"
+    type = "S"
+  }
+
+  attribute {
+    name = "timestamp"
+    type = "N"
+  }
+
+  attribute {
+    name = "event_type"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "event-type-index"
+    hash_key        = "event_type"
+    range_key       = "timestamp"
+    projection_type = "ALL"
+  }
+
+  ttl {
+    attribute_name = "ttl"
+    enabled        = true
+  }
+
+  tags = {
+    Name    = "CommandBridge Activity Log"
+    Purpose = "CommandBridge user interaction tracking with 90-day TTL"
+  }
+}
+
+output "activity_table_name" {
+  value = aws_dynamodb_table.activity.name
+}
+
+output "activity_table_arn" {
+  value = aws_dynamodb_table.activity.arn
 }

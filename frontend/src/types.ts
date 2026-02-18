@@ -98,3 +98,25 @@ export interface AdminUser {
   created_at: string;
   updated_at: string;
 }
+
+export interface CreateUserResponse {
+  message: string;
+  temporary_password: string;
+}
+
+export interface ActivityEvent {
+  user: string;
+  timestamp: number;
+  event_type: string;
+  data?: Record<string, unknown>;
+}
+
+export interface ActivityListResponse {
+  events: ActivityEvent[];
+  cursor: string | null;
+}
+
+export interface ActiveUser {
+  user: string;
+  last_seen: number;
+}

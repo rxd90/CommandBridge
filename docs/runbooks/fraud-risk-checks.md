@@ -39,7 +39,7 @@ last_reviewed: 2026-01-02
 ## Mitigations
 
 - **Enable degraded enrolment** for low-risk cohorts only (existing verified users)
-- **Increase manual review queue capacity** — notify review team lead
+- **Increase manual review queue capacity** - notify review team lead
 - **Enable enhanced audit logging** for all actions taken during degraded state
 - **Block new enrolments temporarily** if fraud indicators are rising
     - Use the **Pause Enrolments** action

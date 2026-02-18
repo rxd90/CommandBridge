@@ -4,14 +4,14 @@ service: CommandBridge
 owner: Platform Ops
 category: Frontend
 tags: [commandbridge, guide, rbac, actions, portal, reference, onboarding]
-last_reviewed: 2026-02-14
+last_reviewed: 2026-02-17
 ---
 
 # CommandBridge User Guide
 
 ## What is CommandBridge?
 
-CommandBridge is the internal operations portal for Scottish Government digital identity services (ScotAccount). It allows operators to run pre-approved admin operations, search runbooks, and troubleshoot issues — all without requiring direct AWS Console access.
+CommandBridge is the internal operations portal for Scottish Government digital identity services (ScotAccount). It allows operators to run pre-approved admin operations, search runbooks, and troubleshoot issues - all without requiring direct AWS Console access.
 
 ## Roles and Permissions
 
@@ -19,18 +19,18 @@ CommandBridge uses three RBAC roles, assigned via Cognito Groups:
 
 | Role | What you can do |
 |---|---|
-| **L1 Operator** | Run safe ops (pull logs, purge cache, restart pods, scale service, drain traffic). Request approval for high-risk actions. Read all KB articles. |
+| **L1 Operator** | Run safe ops (pull logs, purge cache, restart pods, scale service, drain traffic, flush token cache, export audit log). Request approval for high-risk actions. Read all KB articles. |
 | **L2 Engineer** | Everything L1 can do, plus: run and approve most high-risk actions, create and edit KB articles. Must request approval for rotate-secrets only. |
-| **L3 Admin** | Unrestricted. Can run all actions, delete KB articles, and manage portal configuration. |
+| **L3 Admin** | Unrestricted. Can run all actions, delete KB articles, manage users, and view activity/audit logs. |
 
 ## Portal Sections
 
 ### Actions
 
-The **Actions** page lists all 10 operational actions available in CommandBridge. Each action shows:
-- **Name and description** — what it does
-- **Risk level** — low, medium, or high
-- **Your permission** — whether you can run it directly, need approval, or are locked out
+The **Actions** page lists all 15 operational actions available in CommandBridge. Each action shows:
+- **Name and description** - what it does
+- **Risk level** - low, medium, or high
+- **Your permission** - whether you can run it directly, need approval, or are locked out
 
 To execute an action:
 1. Click the action card
@@ -53,7 +53,7 @@ The **Status** page shows the health of ScotAccount services and AWS infrastruct
 
 ## Authentication Flow
 
-CommandBridge authenticates directly against AWS Cognito using **SRP (Secure Remote Password)** via the AWS Amplify Auth SDK. There is no redirect to an external hosted UI — the login form is built into the portal.
+CommandBridge authenticates directly against AWS Cognito using **SRP (Secure Remote Password)** via the AWS Amplify Auth SDK. There is no redirect to an external hosted UI - the login form is built into the portal.
 
 ### Login sequence
 
@@ -78,22 +78,22 @@ CommandBridge authenticates directly against AWS Cognito using **SRP (Secure Rem
 
 ### Token details
 
-- **ID token** — JWT containing user email, name, and `cognito:groups` (used for RBAC)
-- **Access token** — Sent as `Authorization: Bearer` header on all API requests
+- **ID token** - JWT containing user email, name, and `cognito:groups` (used for RBAC)
+- **Access token** - Sent as `Authorization: Bearer` header on all API requests
 - Amplify handles token refresh automatically via the Cognito refresh token
 - Tokens expire based on Cognito User Pool settings (default 1 hour)
 
 ### MFA and first-login flows
 
-- **TOTP MFA** — If MFA is enabled for the user, a 6-digit authenticator code is required after entering credentials
-- **Temporary password** — First-time users with admin-assigned passwords must set a new password on first login. Password requirements: 12+ characters, uppercase, lowercase, number, and symbol
+- **TOTP MFA** - If MFA is enabled for the user, a 6-digit authenticator code is required after entering credentials
+- **Temporary password** - First-time users with admin-assigned passwords must set a new password on first login. Password requirements: 12+ characters, uppercase, lowercase, number, and symbol
 
 ### Troubleshooting login issues
 
-- **"Incorrect email or password"** — Verify credentials. After multiple failed attempts, Cognito may temporarily lock the account.
-- **MFA code rejected** — Ensure the authenticator app clock is synchronised. TOTP codes are time-based and expire after 30 seconds.
-- **Session expires quickly** — Token lifetime is set in the Cognito User Pool. Check the app client token expiration settings.
-- **Blank screen after login** — Clear sessionStorage (`cb_session` key) and retry.
+- **"Incorrect email or password"** - Verify credentials. After multiple failed attempts, Cognito may temporarily lock the account.
+- **MFA code rejected** - Ensure the authenticator app clock is synchronised. TOTP codes are time-based and expire after 30 seconds.
+- **Session expires quickly** - Token lifetime is set in the Cognito User Pool. Check the app client token expiration settings.
+- **Blank screen after login** - Clear sessionStorage (`cb_session` key) and retry.
 
 ## Ticket Number Format
 

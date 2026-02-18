@@ -52,7 +52,7 @@ resource "aws_cognito_user_pool" "main" {
   }
 }
 
-# RBAC Groups — admin-only, appear in cognito:groups JWT claim
+# RBAC Groups - admin-only, appear in cognito:groups JWT claim
 resource "aws_cognito_user_group" "l1_operator" {
   name         = "L1-operator"
   user_pool_id = aws_cognito_user_pool.main.id

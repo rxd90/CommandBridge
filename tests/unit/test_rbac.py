@@ -109,7 +109,7 @@ class TestUnknownAction:
 
 
 # ---------------------------------------------------------------------------
-# get_actions_for_role — permission label resolution
+# get_actions_for_role - permission label resolution
 # ---------------------------------------------------------------------------
 class TestGetActionsForRole:
     def test_l1_sees_all_actions(self):

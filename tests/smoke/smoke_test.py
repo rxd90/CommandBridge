@@ -7,7 +7,7 @@ Usage:
     pytest tests/smoke/smoke_test.py -v
 
 These tests hit REAL infrastructure. Run after deploy, not on every PR.
-Uses only stdlib urllib — no extra dependencies.
+Uses only stdlib urllib - no extra dependencies.
 """
 
 import json

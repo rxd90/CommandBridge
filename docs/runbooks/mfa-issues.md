@@ -38,8 +38,8 @@ last_reviewed: 2026-01-05
 
 ## Mitigations
 
-- **Enable step-up verification** for MFA resets — require email confirmation before processing
-- **Throttle retry attempts** — max 3 OTP requests per account per 5-minute window
+- **Enable step-up verification** for MFA resets - require email confirmation before processing
+- **Throttle retry attempts** - max 3 OTP requests per account per 5-minute window
 - **Temporarily disable MFA reset** for high-risk cohorts (accounts with recent password changes)
     - Use the **Disable MFA Reset** action (request approval via CommandBridge)
 - **Block suspicious IP ranges** at WAF if concentrated abuse is detected

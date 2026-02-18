@@ -15,7 +15,7 @@ import pytest
 from moto import mock_aws
 
 # ---------------------------------------------------------------------------
-# Module-level mocks — must happen before importing handler / kb
+# Module-level mocks - must happen before importing handler / kb
 # ---------------------------------------------------------------------------
 
 # Patch shared.audit before handler import (same pattern as test_handler.py)
@@ -39,7 +39,7 @@ from conftest import make_apigw_event
 
 
 # ---------------------------------------------------------------------------
-# DynamoDB table helper — creates the KB table with both GSIs
+# DynamoDB table helper - creates the KB table with both GSIs
 # ---------------------------------------------------------------------------
 
 def _create_kb_table():
@@ -83,7 +83,7 @@ def _create_kb_table():
 
 
 # ===================================================================
-# Part 1 — KB Handler Route Tests
+# Part 1 - KB Handler Route Tests
 # ===================================================================
 
 
@@ -348,7 +348,7 @@ class TestKBHandlerRoutes:
 
 
 # ===================================================================
-# Part 2 — KB Data Access Layer Tests (shared/kb.py via moto)
+# Part 2 - KB Data Access Layer Tests (shared/kb.py via moto)
 # ===================================================================
 
 

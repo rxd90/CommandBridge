@@ -39,7 +39,7 @@ last_reviewed: 2026-01-07
 
 ## Mitigations
 
-- **Reduce application concurrency** — lower connection pool max size
+- **Reduce application concurrency** - lower connection pool max size
 - **Kill idle connections** if pool is exhausted
     ```sql
     SELECT pg_terminate_backend(pid) FROM pg_stat_activity

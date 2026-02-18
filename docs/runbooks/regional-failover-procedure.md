@@ -11,7 +11,7 @@ last_reviewed: 2026-02-14
 
 ## Overview
 
-The **Failover Region** action overrides Route 53 health checks and triggers RDS failover to shift traffic from a degraded primary region (eu-west-2) to the standby region (eu-west-1). This is a high-risk action — L1 must request approval; L2+ can execute directly.
+The **Failover Region** action overrides Route 53 health checks and triggers RDS failover to shift traffic from a degraded primary region (eu-west-2) to the standby region (eu-west-1). This is a high-risk action - L1 must request approval; L2+ can execute directly.
 
 ## Decision Criteria
 
@@ -31,9 +31,9 @@ Initiate regional failover ONLY when:
 
 ## Pre-Failover Checklist
 
-- [ ] **Confirm primary region is genuinely down** — not a monitoring false positive
-- [ ] **Verify standby region is healthy** — check eu-west-1 service health
-- [ ] **Notify all teams** — post in #inc-bridge: "Preparing for regional failover"
+- [ ] **Confirm primary region is genuinely down** - not a monitoring false positive
+- [ ] **Verify standby region is healthy** - check eu-west-1 service health
+- [ ] **Notify all teams** - post in #inc-bridge: "Preparing for regional failover"
 - [ ] **Open a P1 incident ticket** if not already open
 - [ ] **Get L2+ approval** (L1 operators must request)
 
@@ -49,16 +49,16 @@ Initiate regional failover ONLY when:
 ### Step 2: What Happens Automatically
 
 The failover action:
-1. **Inverts Route 53 health check** — marks primary as unhealthy, standby as healthy
-2. **DNS propagation** — Route 53 begins routing traffic to eu-west-1 (TTL-dependent, typically 60-300 seconds)
-3. **RDS failover** — Aurora promotes the eu-west-1 read replica to writer (1-2 minutes)
+1. **Inverts Route 53 health check** - marks primary as unhealthy, standby as healthy
+2. **DNS propagation** - Route 53 begins routing traffic to eu-west-1 (TTL-dependent, typically 60-300 seconds)
+3. **RDS failover** - Aurora promotes the eu-west-1 read replica to writer (1-2 minutes)
 
 ### Step 3: Post-Failover Verification
 
-1. **Check DNS resolution** — verify `api.scotaccount.gov.uk` resolves to eu-west-1 endpoints
-2. **Test login flow** — complete an end-to-end authentication test
-3. **Monitor error rates** — watch for elevated errors during the transition window (5-10 minutes)
-4. **Verify data consistency** — check for replication lag or stale reads
+1. **Check DNS resolution** - verify `api.scotaccount.gov.uk` resolves to eu-west-1 endpoints
+2. **Test login flow** - complete an end-to-end authentication test
+3. **Monitor error rates** - watch for elevated errors during the transition window (5-10 minutes)
+4. **Verify data consistency** - check for replication lag or stale reads
 
 ## Expected Timeline
 
@@ -75,10 +75,10 @@ The failover action:
 
 Once the primary region is restored:
 
-1. **Verify primary region health** — all services passing health checks
-2. **Re-enable RDS replication** — set eu-west-2 as the writer, eu-west-1 as read replica
-3. **Update Route 53 health checks** — restore original configuration
-4. **Monitor for 30 minutes** — watch for any issues during failback
+1. **Verify primary region health** - all services passing health checks
+2. **Re-enable RDS replication** - set eu-west-2 as the writer, eu-west-1 as read replica
+3. **Update Route 53 health checks** - restore original configuration
+4. **Monitor for 30 minutes** - watch for any issues during failback
 5. **Close the incident** once stable
 
 !!! warning "Failback timing"

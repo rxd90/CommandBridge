@@ -36,7 +36,7 @@ The **Scale Service** action adjusts the desired task count for ECS services or 
 
 1. **Navigate to Actions** and select **Scale Service**
 2. **Select the target service** (e.g., `scotaccount-auth`, `enrolment-api`)
-3. **Set the desired count** — the new number of tasks or replicas
+3. **Set the desired count** - the new number of tasks or replicas
 4. **Enter your ticket number and reason**
 5. **Click Execute**
 6. **Monitor scaling:**
@@ -49,11 +49,11 @@ The **Scale Service** action adjusts the desired task count for ECS services or 
 Before scaling, verify:
 - Current task count and health status
 - Available cluster capacity (CPU/memory headroom)
-- Recent deployment status — scaling during a rolling update can cause issues
+- Recent deployment status - scaling during a rolling update can cause issues
 
 ## Rollback
 
-To rollback, simply scale back to the previous count using the same action. If autoscaling is configured, it will eventually adjust back to normal — but manual scaling overrides the autoscaler temporarily.
+To rollback, simply scale back to the previous count using the same action. If autoscaling is configured, it will eventually adjust back to normal - but manual scaling overrides the autoscaler temporarily.
 
 ## Escalation
 

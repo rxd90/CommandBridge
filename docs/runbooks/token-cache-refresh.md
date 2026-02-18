@@ -4,10 +4,12 @@ service: OIDC / JWKS Cache
 owner: Identity Platform
 category: Backend
 tags: [oidc, jwks, token, cache, signing-key, scotaccount]
-last_reviewed: 2026-02-16
+last_reviewed: 2026-02-17
 ---
 
 # Token Cache Refresh: flush stale JWKS keys after rotation
+
+> **Note:** Replace `$USER_POOL_ID` in commands below with the value from `terraform output cognito_user_pool_id`.
 
 ## Symptoms
 
@@ -21,12 +23,12 @@ last_reviewed: 2026-02-16
 1. **Compare cached vs live JWKS keys**
     ```bash
     # Live JWKS from Cognito
-    curl -s https://cognito-idp.eu-west-2.amazonaws.com/eu-west-2_quMz1HdKl/.well-known/jwks.json | jq '.keys[].kid'
+    curl -s https://cognito-idp.eu-west-2.amazonaws.com/$USER_POOL_ID/.well-known/jwks.json | jq '.keys[].kid'
     ```
     Compare the `kid` values against what the authoriser Lambda is logging.
 
 2. **Check ElastiCache hit/miss ratio**
-    - CloudWatch metric: `ElastiCache > CacheMisses` — a sudden spike in misses after rotation is expected
+    - CloudWatch metric: `ElastiCache > CacheMisses` - a sudden spike in misses after rotation is expected
     - If hits remain high with old keys, the cache has not been flushed
 
 3. **Check authoriser Lambda logs**

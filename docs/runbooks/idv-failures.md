@@ -43,7 +43,7 @@ last_reviewed: 2026-01-06
 
 - **Switch to backup IDV provider** if configured and primary is degraded
 - **Increase retry backoff** for transient provider errors
-- **Communicate guidance to support desk** — provide workaround messaging for affected users
+- **Communicate guidance to support desk** - provide workaround messaging for affected users
 - **Temporarily increase S3 presigned URL expiry** if upload timeouts are the root cause
 
 ## Escalation

@@ -50,6 +50,26 @@ resource "aws_cloudfront_function" "spa_rewrite" {
   EOF
 }
 
+# CloudFront Function: Security headers
+# Adds security headers to all viewer responses.
+resource "aws_cloudfront_function" "security_headers" {
+  name    = "${var.project_name}-security-headers"
+  runtime = "cloudfront-js-2.0"
+  publish = true
+  code    = <<-EOF
+    function handler(event) {
+      var response = event.response;
+      var headers = response.headers;
+      headers['strict-transport-security'] = { value: 'max-age=63072000; includeSubDomains; preload' };
+      headers['x-content-type-options']    = { value: 'nosniff' };
+      headers['x-frame-options']           = { value: 'DENY' };
+      headers['referrer-policy']           = { value: 'strict-origin-when-cross-origin' };
+      headers['content-security-policy']   = { value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.amazonaws.com https://*.amazoncognito.com; frame-ancestors 'none';" };
+      return response;
+    }
+  EOF
+}
+
 resource "aws_cloudfront_distribution" "site" {
   enabled             = true
   comment             = "CommandBridge portal (${var.environment})"
@@ -78,6 +98,11 @@ resource "aws_cloudfront_distribution" "site" {
     function_association {
       event_type   = "viewer-request"
       function_arn = aws_cloudfront_function.spa_rewrite.arn
+    }
+
+    function_association {
+      event_type   = "viewer-response"
+      function_arn = aws_cloudfront_function.security_headers.arn
     }
 
     min_ttl     = 0

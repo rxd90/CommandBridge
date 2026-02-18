@@ -4,6 +4,7 @@ Tests all 15 executor modules in lambdas/actions/executors/.
 """
 
 import json
+import os
 from unittest.mock import patch, MagicMock
 
 import boto3
@@ -12,7 +13,7 @@ from moto import mock_aws
 
 
 # ---------------------------------------------------------------------------
-# pull_logs — CloudWatch Logs
+# pull_logs - CloudWatch Logs
 # ---------------------------------------------------------------------------
 @mock_aws
 class TestPullLogsExecutor:
@@ -51,7 +52,7 @@ class TestPullLogsExecutor:
 
 
 # ---------------------------------------------------------------------------
-# blacklist_ip — WAFv2
+# blacklist_ip - WAFv2
 # ---------------------------------------------------------------------------
 @mock_aws
 class TestBlacklistIpExecutor:
@@ -97,7 +98,7 @@ class TestBlacklistIpExecutor:
 
 
 # ---------------------------------------------------------------------------
-# rotate_secrets — Secrets Manager
+# rotate_secrets - Secrets Manager
 # ---------------------------------------------------------------------------
 @mock_aws
 class TestRotateSecretsExecutor:
@@ -112,7 +113,7 @@ class TestRotateSecretsExecutor:
 
 
 # ---------------------------------------------------------------------------
-# scale_service — ECS
+# scale_service - ECS
 # ---------------------------------------------------------------------------
 @mock_aws
 class TestScaleServiceExecutor:
@@ -147,7 +148,7 @@ class TestScaleServiceExecutor:
 
 
 # ---------------------------------------------------------------------------
-# failover_region — Route 53
+# failover_region - Route 53
 # ---------------------------------------------------------------------------
 @mock_aws
 class TestFailoverRegionExecutor:
@@ -176,7 +177,7 @@ class TestFailoverRegionExecutor:
 
 
 # ---------------------------------------------------------------------------
-# drain_traffic — ELBv2
+# drain_traffic - ELBv2
 # ---------------------------------------------------------------------------
 class TestDrainTrafficExecutor:
     def test_deregisters_targets(self):
@@ -202,7 +203,7 @@ class TestDrainTrafficExecutor:
 
 
 # ---------------------------------------------------------------------------
-# restart_pods — SSM
+# restart_pods - SSM
 # ---------------------------------------------------------------------------
 @mock_aws
 class TestRestartPodsExecutor:
@@ -230,7 +231,7 @@ class TestRestartPodsExecutor:
 
 
 # ---------------------------------------------------------------------------
-# purge_cache — ElastiCache + CloudFront
+# purge_cache - ElastiCache + CloudFront
 # ---------------------------------------------------------------------------
 class TestPurgeCacheExecutor:
     def test_purges_cache(self):
@@ -264,7 +265,7 @@ class TestPurgeCacheExecutor:
 
 
 # ---------------------------------------------------------------------------
-# maintenance_mode — AppConfig (mocked, not supported by moto)
+# maintenance_mode - AppConfig (mocked, not supported by moto)
 # ---------------------------------------------------------------------------
 class TestMaintenanceModeExecutor:
     def test_enables_maintenance_mode(self):
@@ -291,7 +292,7 @@ class TestMaintenanceModeExecutor:
 
 
 # ---------------------------------------------------------------------------
-# pause_enrolments — AppConfig (mocked)
+# pause_enrolments - AppConfig (mocked)
 # ---------------------------------------------------------------------------
 class TestPauseEnrolmentsExecutor:
     def test_pauses_enrolments(self):
@@ -318,11 +319,12 @@ class TestPauseEnrolmentsExecutor:
 
 
 # ---------------------------------------------------------------------------
-# revoke_sessions — Cognito (mocked, joserfc not available for moto)
+# revoke_sessions - Cognito (mocked, joserfc not available for moto)
 # ---------------------------------------------------------------------------
 class TestRevokeSessionsExecutor:
     def test_revokes_sessions(self):
-        with patch('boto3.client') as mock_client:
+        with patch('boto3.client') as mock_client, \
+             patch.dict(os.environ, {'USER_POOL_ID': 'eu-west-2_test'}):
             mock_cognito = MagicMock()
             mock_client.return_value = mock_cognito
             mock_cognito.admin_user_global_sign_out.return_value = {}
@@ -332,7 +334,6 @@ class TestRevokeSessionsExecutor:
             importlib.reload(revoke_sessions)
             result = revoke_sessions.execute({
                 'target': 'jane@scotgov.uk',
-                'user_pool_id': 'eu-west-2_test',
             })
             assert result['status'] == 'success'
             assert 'jane@scotgov.uk' in result['message']
@@ -342,7 +343,8 @@ class TestRevokeSessionsExecutor:
             )
 
     def test_cognito_error_propagates(self):
-        with patch('boto3.client') as mock_client:
+        with patch('boto3.client') as mock_client, \
+             patch.dict(os.environ, {'USER_POOL_ID': 'eu-west-2_test'}):
             mock_cognito = MagicMock()
             mock_client.return_value = mock_cognito
             mock_cognito.admin_user_global_sign_out.side_effect = Exception('UserNotFoundException')
@@ -353,12 +355,11 @@ class TestRevokeSessionsExecutor:
             with pytest.raises(Exception, match='UserNotFoundException'):
                 revoke_sessions.execute({
                     'target': 'ghost@scotgov.uk',
-                    'user_pool_id': 'eu-west-2_test',
                 })
 
 
 # ---------------------------------------------------------------------------
-# flush_token_cache — ElastiCache (mocked, limited moto support)
+# flush_token_cache - ElastiCache (mocked, limited moto support)
 # ---------------------------------------------------------------------------
 class TestFlushTokenCacheExecutor:
     def test_flushes_cache(self):
@@ -399,7 +400,7 @@ class TestFlushTokenCacheExecutor:
 
 
 # ---------------------------------------------------------------------------
-# toggle_idv_provider — SSM
+# toggle_idv_provider - SSM
 # ---------------------------------------------------------------------------
 @mock_aws
 class TestToggleIdvProviderExecutor:
@@ -433,7 +434,7 @@ class TestToggleIdvProviderExecutor:
 
 
 # ---------------------------------------------------------------------------
-# disable_user — Cognito + DynamoDB sync (mocked, joserfc not available)
+# disable_user - Cognito + DynamoDB sync (mocked, joserfc not available)
 # ---------------------------------------------------------------------------
 class TestDisableUserExecutor:
     def test_disables_user_and_syncs_dynamodb(self):
@@ -443,14 +444,15 @@ class TestDisableUserExecutor:
         importlib.reload(disable_user)
 
         with patch('boto3.client') as mock_client, \
-             patch.object(disable_user, 'update_user') as mock_update:
+             patch.object(disable_user, 'update_user') as mock_update, \
+             patch.object(disable_user, 'get_user', return_value={'email': 'victim@scotgov.uk', 'role': 'L1-operator'}), \
+             patch.dict(os.environ, {'USER_POOL_ID': 'eu-west-2_test'}):
             mock_cognito = MagicMock()
             mock_client.return_value = mock_cognito
             mock_cognito.admin_disable_user.return_value = {}
 
             result = disable_user.execute({
                 'target': 'victim@scotgov.uk',
-                'user_pool_id': 'eu-west-2_test',
             })
             assert result['status'] == 'success'
             assert 'victim@scotgov.uk' in result['message']
@@ -470,7 +472,7 @@ class TestDisableUserExecutor:
 
 
 # ---------------------------------------------------------------------------
-# export_audit_log — DynamoDB + S3
+# export_audit_log - DynamoDB + S3
 # ---------------------------------------------------------------------------
 @mock_aws
 class TestExportAuditLogExecutor:
@@ -497,7 +499,7 @@ class TestExportAuditLogExecutor:
         return s3
 
     def test_exports_records_to_s3(self):
-        table = self._setup_table('audit-export-test')
+        table = self._setup_table('commandbridge-dev-audit')
         s3 = self._setup_bucket('export-bucket')
 
         # Seed some audit records
@@ -506,7 +508,7 @@ class TestExportAuditLogExecutor:
 
         from actions.executors.export_audit_log import execute
         result = execute({
-            'target': 'audit-export-test',
+            'target': 'commandbridge-dev-audit',
             'bucket': 'export-bucket',
         })
         assert result['status'] == 'success'
@@ -519,12 +521,12 @@ class TestExportAuditLogExecutor:
         assert len(body) == 2
 
     def test_empty_table_exports_zero_records(self):
-        self._setup_table('audit-empty')
+        self._setup_table('commandbridge-test-audit')
         self._setup_bucket('export-bucket-empty')
 
         from actions.executors.export_audit_log import execute
         result = execute({
-            'target': 'audit-empty',
+            'target': 'commandbridge-test-audit',
             'bucket': 'export-bucket-empty',
         })
         assert result['status'] == 'success'

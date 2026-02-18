@@ -4,10 +4,12 @@ service: ScotAccount Data
 owner: Trust & Safety
 category: Security
 tags: [dsar, gdpr, data-protection, privacy, compliance, scotaccount]
-last_reviewed: 2026-02-16
+last_reviewed: 2026-02-17
 ---
 
 # Data Subject Access Request (DSAR) Procedure
+
+> **Note:** Replace `$USER_POOL_ID` in commands below with the value from `terraform output cognito_user_pool_id`.
 
 ## Background
 
@@ -35,14 +37,14 @@ ScotAccount holds the following categories of personal data:
 - **Cognito account data**:
     ```bash
     aws cognito-idp admin-get-user \
-      --user-pool-id eu-west-2_quMz1HdKl \
+      --user-pool-id $USER_POOL_ID \
       --username <email>
     ```
 
 - **Authentication events**:
     ```bash
     aws cognito-idp admin-list-user-auth-events \
-      --user-pool-id eu-west-2_quMz1HdKl \
+      --user-pool-id $USER_POOL_ID \
       --username <email> \
       --max-results 100
     ```

@@ -5,11 +5,20 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { PageHeader } from '../components/PageHeader';
 import { createKBArticle, updateKBArticle, getKBArticle } from '../lib/api';
-import type { KBCategory } from '../types';
-
-const KB_CATEGORIES: KBCategory[] = ['Frontend', 'Backend', 'Infrastructure', 'Security'];
+import { useRbac } from '../hooks/useRbac';
+import { KB_CATEGORIES } from '../lib/constants';
 
 export function ArticleEditorPage() {
+  const { level } = useRbac();
+
+  if (level < 2) {
+    return (
+      <>
+        <PageHeader label="Knowledge Base" title="Access Denied" subtitle="L2 engineer access or above required." />
+        <p>You do not have permission to edit articles.</p>
+      </>
+    );
+  }
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEdit = Boolean(id);

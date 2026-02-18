@@ -27,6 +27,7 @@ docs/runbooks/  -> Runbook markdown source files (seed data for the dynamic KB)
 | API | API Gateway HTTP API + Lambda (Python) |
 | Knowledge Base | DynamoDB-backed with full CRUD, versioning, and server-side search |
 | Audit | DynamoDB-backed immutable audit log with GSI queries |
+| Activity | DynamoDB-backed user interaction tracking with GSI queries |
 | Infra | Terraform, S3, CloudFront, DynamoDB |
 
 ## Design System
@@ -49,29 +50,29 @@ Three roles enforced server-side via DynamoDB (source of truth) with Cognito JWT
 
 | Role | Level | Can Do |
 |------|-------|--------|
-| `L1-operator` | 1 | Run safe ops (purge cache, pull logs, restart pods). Request approval for high-risk. Read KB articles. |
+| `L1-operator` | 1 | Run safe ops (pull logs, purge cache, restart pods, scale service, drain traffic, flush token cache, export audit log). Request approval for high-risk actions. Read KB articles. |
 | `L2-engineer` | 2 | Run + approve most operations. Request rotate-secrets. Create + edit KB articles. View audit log. |
-| `L3-admin` | 3 | Unrestricted. Delete KB articles. Manage users (enable/disable/role change). Full audit access. |
+| `L3-admin` | 3 | Unrestricted. Delete KB articles. Manage users (enable/disable/role change). Full activity and audit access. |
 
 ### Actions (15 operational actions)
 
 | Action | Risk | L1 | L2 | L3 |
 |--------|------|----|----|-----|
 | pull-logs | low | run | run | run |
-| purge-cache | low | run | run | run |
+| purge-cache | medium | run | run | run |
 | restart-pods | medium | run | run | run |
 | scale-service | medium | run | run | run |
-| blacklist-ip | medium | request | run | run |
-| drain-traffic | high | request | run | run |
-| flush-token-cache | medium | request | run | run |
-| revoke-sessions | medium | request | run | run |
+| drain-traffic | medium | run | run | run |
+| flush-token-cache | medium | run | run | run |
+| export-audit-log | low | run | run | run |
+| maintenance-mode | high | request | run | run |
+| blacklist-ip | high | request | run | run |
+| failover-region | high | request | run | run |
+| pause-enrolments | high | request | run | run |
+| revoke-sessions | high | request | run | run |
 | toggle-idv-provider | high | request | run | run |
 | disable-user | high | request | run | run |
-| rotate-secrets | high | locked | request | run |
-| failover-region | high | locked | request | run |
-| maintenance-mode | high | locked | request | run |
-| pause-enrolments | high | locked | request | run |
-| export-audit-log | medium | locked | run | run |
+| rotate-secrets | high | request | request | run |
 
 RBAC config lives in `rbac/actions.json`. Permissions are enforced by the Lambda handler on every API call.
 
@@ -86,7 +87,7 @@ RBAC config lives in `rbac/actions.json`. Permissions are enforced by the Lambda
 | `/kb/new` | New Article | L2+ | Create a new KB article |
 | `/kb/:id/edit` | Edit Article | L2+ | Edit an existing KB article |
 | `/status` | Status | All | Service health status dashboard |
-| `/audit` | Audit Log | L2+ | Searchable audit trail of all actions and admin operations |
+| `/activity` | Activity | L3 | User activity tracking and audit trail |
 | `/admin` | Admin Panel | L3 | User management (enable/disable/role) and RBAC matrix |
 
 ## Local Development
@@ -157,7 +158,7 @@ This builds the React app, packages the Lambda, runs `terraform apply`, uploads 
 
 To change infrastructure, edit the relevant module in `infra/modules/`, run `terraform plan` to review, then `terraform apply` (or `bash scripts/deploy.sh` for a full deploy).
 
-The only permitted direct AWS CLI operations are read-only queries for debugging and user data management (create users, set passwords, assign groups) — see User Management below.
+The only permitted direct AWS CLI operations are read-only queries for debugging and user data management (create users, set passwords, assign groups) - see User Management below.
 
 ### User Management
 
@@ -192,7 +193,7 @@ aws cognito-idp admin-add-user-to-group \
 ```
 frontend/src/
   components/     -> Shared components (Layout, SiteHeader, PageHeader, StatusTag, Modal, AuthGuard, etc.)
-  pages/          -> Route pages (Home, Login, Callback, Actions, Status, KB, Audit, Admin)
+  pages/          -> Route pages (Home, Login, Actions, Status, KB, Activity, Admin)
   hooks/          -> Custom hooks (useAuth, useRbac)
   lib/            -> Utilities (auth, api, rbac)
   styles/
@@ -219,10 +220,13 @@ frontend/src/
 | DELETE | `/kb/{id}` | JWT (L3) | Delete all versions of an article |
 | GET | `/kb/{id}/versions` | JWT | List article version history |
 | GET | `/kb/{id}/versions/{ver}` | JWT | Get specific article version |
+| POST | `/admin/users` | JWT (L3) | Create a new user |
 | GET | `/admin/users` | JWT (L3) | List all users |
 | POST | `/admin/users/{email}/disable` | JWT (L3) | Disable a user |
 | POST | `/admin/users/{email}/enable` | JWT (L3) | Enable a user |
 | POST | `/admin/users/{email}/role` | JWT (L3) | Change a user's role |
+| POST | `/activity` | JWT | Ingest frontend activity events |
+| GET | `/activity` | JWT | Query activity events (admin: any user; others: self) |
 
 ## Knowledge Base
 

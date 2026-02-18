@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Play, Send, Lock, Server, FileText, X, CheckCircle, AlertCircle, Monitor, HardDrive, Shield, Search } from 'lucide-react';
+import { Play, Send, Lock, Server, FileText, X, CheckCircle, AlertCircle, Search } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { StatusTag } from '../components/StatusTag';
 import { Modal } from '../components/Modal';
 import { getPermissions } from '../lib/rbac';
 import { executeAction, requestAction } from '../lib/api';
+import { trackEvent, trackFilterChange } from '../lib/activity';
+import { CATEGORIES } from '../lib/constants';
 import type { Action, KBCategory } from '../types';
 
 const RISK_COLOUR = {
@@ -12,13 +14,6 @@ const RISK_COLOUR = {
   medium: 'orange',
   high: 'red',
 } as const;
-
-const CATEGORIES: { key: KBCategory; label: string; icon: typeof Monitor; colour: string }[] = [
-  { key: 'Frontend', label: 'Frontend', icon: Monitor, colour: 'blue' },
-  { key: 'Backend', label: 'Backend', icon: Server, colour: 'purple' },
-  { key: 'Infrastructure', label: 'Infrastructure', icon: HardDrive, colour: 'orange' },
-  { key: 'Security', label: 'Security', icon: Shield, colour: 'red' },
-];
 
 const CATEGORY_COLOUR: Record<string, 'blue' | 'purple' | 'orange' | 'red'> = {
   Frontend: 'blue',
@@ -57,7 +52,11 @@ export function ActionsPage() {
   }, []);
 
   const handleCategoryClick = useCallback((key: KBCategory) => {
-    setActiveCategory(prev => prev === key ? null : key);
+    setActiveCategory(prev => {
+      const next = prev === key ? null : key;
+      if (next) trackFilterChange('category', next, 'actions');
+      return next;
+    });
   }, []);
 
   const closeModal = useCallback(() => {
@@ -80,6 +79,7 @@ export function ActionsPage() {
     try {
       const fn = isRequest ? requestAction : executeAction;
       const res = await fn(modalAction.id, ticket.trim(), reason.trim());
+      trackEvent(isRequest ? 'action_request' : 'action_execute', { action: modalAction.id });
       setResult({ ok: true, message: res.message });
     } catch (err) {
       setResult({ ok: false, message: err instanceof Error ? err.message : 'Action failed.' });

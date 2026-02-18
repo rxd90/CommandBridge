@@ -1,8 +1,8 @@
-# CommandBridge Knowledge Base — Seed Data
+# CommandBridge Knowledge Base - Seed Data
 
 This directory contains the markdown source files used to seed the dynamic Knowledge Base.
 
-The KB is now a DynamoDB-backed system with full CRUD, versioning, and search — managed through the portal UI and the Lambda API. These markdown files serve as the initial seed data.
+The KB is now a DynamoDB-backed system with full CRUD, versioning, and search - managed through the portal UI and the Lambda API. These markdown files serve as the initial seed data.
 
 ## Troubleshooting Runbooks
 

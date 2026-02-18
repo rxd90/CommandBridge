@@ -26,7 +26,7 @@ last_reviewed: 2026-01-10
 
 2. **Eviction rate and memory usage**
     - Check CloudWatch `Evictions`, `CurrConnections`, `BytesUsedForCache`
-    - Compare against baseline — evictions should be near zero under normal load
+    - Compare against baseline - evictions should be near zero under normal load
 
 3. **Sticky session configuration at the edge**
     - Verify ALB session stickiness settings

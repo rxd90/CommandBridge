@@ -78,7 +78,7 @@ export function LoginPage() {
       if (msg === 'NotAuthorizedException' || msg === 'UserNotFoundException') {
         setError('Incorrect email or password.');
       } else if (msg === 'UserAlreadyAuthenticatedException') {
-        // Already signed in from a previous attempt — go ahead
+        // Already signed in from a previous attempt - go ahead
         await storeSessionAndRedirect();
         return;
       } else {
@@ -163,18 +163,18 @@ export function LoginPage() {
           <p className="cb_login__subtitle">
             Scottish Government Digital Identity<br />Internal Operations Portal
           </p>
-          <p className="cb_login__dev-label">Local dev mode — select a user</p>
+          <p className="cb_login__dev-label">Local dev mode - select a user</p>
           <div className="cb_login__user-list">
             {devUsers.map((u) => (
               <button key={u.id} className="cb_login__user-btn" onClick={() => localDevLogin(u)}>
                 <strong>{u.name}</strong>
-                <span>{u.role} — {u.team}</span>
+                <span>{u.role} - {u.team}</span>
               </button>
             ))}
           </div>
         </div>
         <div className="cb_login__footer">
-          <Shield /> Scottish Government — Digital Directorate
+          <Shield /> Scottish Government - Digital Directorate
         </div>
       </div>
     );
@@ -294,7 +294,7 @@ export function LoginPage() {
         )}
       </div>
       <div className="cb_login__footer">
-        <Shield /> Scottish Government — Digital Directorate
+        <Shield /> Scottish Government - Digital Directorate
       </div>
     </div>
   );

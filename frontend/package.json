@@ -8,7 +8,8 @@
     "prebuild": "node -e \"const fs=require('fs');const p=require('path');const d='../site';fs.readdirSync(d).forEach(f=>fs.rmSync(p.join(d,f),{recursive:true,force:true}))\"",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "aws-amplify": "^6.16.2",
@@ -20,6 +21,7 @@
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^19.0.0",

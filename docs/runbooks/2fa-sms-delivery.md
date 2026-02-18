@@ -32,7 +32,7 @@ last_reviewed: 2026-02-16
     Look for `UNREACHABLE`, `BLOCKED`, or `CARRIER_UNREACHABLE` statuses.
 
 3. **Verify monthly spend limit is not exhausted**
-    - Default SNS SMS spend limit is $1.00/month — this must be increased for production
+    - Default SNS SMS spend limit is $1.00/month - this must be increased for production
     - Check `MonthlySpendLimit` vs current month spend
 
 4. **Check if specific carriers are affected**

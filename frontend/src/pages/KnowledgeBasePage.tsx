@@ -1,17 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, BookOpen, Clock, User, Monitor, Server, HardDrive, Shield } from 'lucide-react';
+import { Search, Plus, BookOpen, Clock, User } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { useRbac } from '../hooks/useRbac';
 import { listKBArticles } from '../lib/api';
+import { CATEGORIES } from '../lib/constants';
 import type { KBArticle, KBCategory } from '../types';
-
-const CATEGORIES: { key: KBCategory; label: string; icon: typeof Monitor; colour: string }[] = [
-  { key: 'Frontend', label: 'Frontend', icon: Monitor, colour: 'blue' },
-  { key: 'Backend', label: 'Backend', icon: Server, colour: 'purple' },
-  { key: 'Infrastructure', label: 'Infrastructure', icon: HardDrive, colour: 'orange' },
-  { key: 'Security', label: 'Security', icon: Shield, colour: 'red' },
-];
 
 export function KnowledgeBasePage() {
   const { level } = useRbac();

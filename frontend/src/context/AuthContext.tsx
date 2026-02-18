@@ -1,6 +1,7 @@
-import { createContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { User } from '../types';
 import * as auth from '../lib/auth';
+import { initActivityTracker, stopActivityTracker, trackEvent } from '../lib/activity';
 
 interface AuthContextValue {
   user: User | null;
@@ -25,19 +26,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setUser(auth.getCurrentUser());
+    const currentUser = auth.getCurrentUser();
+    setUser(currentUser);
     setLoading(false);
+
+    if (currentUser) {
+      initActivityTracker();
+    }
+
+    return () => stopActivityTracker();
   }, []);
 
   const refreshUser = () => {
     setUser(auth.getCurrentUser());
   };
 
+  const handleLogout = useCallback(() => {
+    trackEvent('logout');
+    stopActivityTracker();
+    auth.logout();
+  }, []);
+
   const value: AuthContextValue = {
     user,
     loading,
     login: auth.login,
-    logout: auth.logout,
+    logout: handleLogout,
     refreshUser,
     getAccessToken: auth.getAccessToken,
   };

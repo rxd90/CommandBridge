@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Shield, Search, UserCheck, UserX, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { Shield, Search, UserCheck, UserX, UserPlus, CheckCircle, AlertCircle, X, Copy, Eye, EyeOff, ChevronUp } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { StatusTag } from '../components/StatusTag';
 import { Modal } from '../components/Modal';
-import { listAdminUsers, disableAdminUser, enableAdminUser, setAdminUserRole } from '../lib/api';
+import { listAdminUsers, disableAdminUser, enableAdminUser, setAdminUserRole, createAdminUser } from '../lib/api';
+import { trackEvent } from '../lib/activity';
 import { useRbac } from '../hooks/useRbac';
+import { useAuth } from '../hooks/useAuth';
 import type { AdminUser } from '../types';
 
 const ROLES = ['L1-operator', 'L2-engineer', 'L3-admin'] as const;
@@ -54,10 +56,18 @@ export function AdminPage() {
 }
 
 function AdminPageContent() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [actions, setActions] = useState<RbacAction[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+
+  // Add user state
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [newUser, setNewUser] = useState({ email: '', name: '', role: 'L1-operator', team: '' });
+  const [addResult, setAddResult] = useState<{ ok: boolean; message: string; tempPassword?: string } | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [showTempPassword, setShowTempPassword] = useState(false);
 
   // Modal state
   const [modalUser, setModalUser] = useState<AdminUser | null>(null);
@@ -66,24 +76,33 @@ function AdminPageContent() {
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [executing, setExecuting] = useState(false);
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [usersRes, actionsRes] = await Promise.all([
-      listAdminUsers(),
-      fetch('/rbac/actions.json').then(r => r.json()),
-    ]);
-    setUsers(usersRes.users);
-    const actionList: RbacAction[] = Object.entries(actionsRes).map(([id, a]) => {
-      const action = a as Record<string, unknown>;
-      return {
-        id,
-        name: action.name as string,
-        risk: action.risk as string,
-        permissions: action.permissions as Record<string, string | Record<string, boolean>>,
-      };
-    });
-    setActions(actionList);
-    setLoading(false);
+    setLoadError(null);
+    try {
+      const [usersRes, actionsRes] = await Promise.all([
+        listAdminUsers(),
+        fetch('/rbac/actions.json').then(r => r.json()),
+      ]);
+      setUsers(usersRes.users);
+      const actionList: RbacAction[] = Object.entries(actionsRes).map(([id, a]) => {
+        const action = a as Record<string, unknown>;
+        return {
+          id,
+          name: action.name as string,
+          risk: action.risk as string,
+          permissions: action.permissions as Record<string, string | Record<string, boolean>>,
+        };
+      });
+      setActions(actionList);
+    } catch (err) {
+      console.error('[Admin] loadData error:', err);
+      setLoadError(err instanceof Error ? err.message : 'Failed to load admin data.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -114,6 +133,7 @@ function AdminPageContent() {
         res = await setAdminUserRole(modalUser.email, selectedRole);
       }
       setResult({ ok: true, message: res.message });
+      trackEvent('admin_action', { action: modalAction, target: modalUser.email });
       // Refresh user list
       const updated = await listAdminUsers();
       setUsers(updated.users);
@@ -123,6 +143,28 @@ function AdminPageContent() {
       setExecuting(false);
     }
   }, [modalUser, modalAction, selectedRole]);
+
+  const handleAddUser = useCallback(async () => {
+    setAdding(true);
+    setAddResult(null);
+    try {
+      const res = await createAdminUser(newUser);
+      setAddResult({ ok: true, message: res.message, tempPassword: res.temporary_password });
+      setShowTempPassword(false);
+      const updated = await listAdminUsers();
+      setUsers(updated.users);
+      setNewUser({ email: '', name: '', role: 'L1-operator', team: '' });
+      trackEvent('admin_action', { action: 'create_user', target: newUser.email });
+    } catch (err) {
+      setAddResult({ ok: false, message: err instanceof Error ? err.message : 'Failed to create user' });
+    } finally {
+      setAdding(false);
+    }
+  }, [newUser]);
+
+  const copyPassword = useCallback(async (pw: string) => {
+    await navigator.clipboard.writeText(pw);
+  }, []);
 
   const filteredUsers = users.filter(u => {
     if (!search) return true;
@@ -145,9 +187,130 @@ function AdminPageContent() {
         subtitle="Manage users, roles, and view the RBAC permission matrix. L3-admin only."
       />
 
+      {loadError && (
+        <div className="cb_warning" role="alert">
+          <AlertCircle />
+          <p>Failed to load admin data: {loadError}</p>
+        </div>
+      )}
+
       {/* ── User Management ──────────────────────────── */}
       <section className="cb_admin-section">
-        <h2><Shield /> User Management</h2>
+        <div className="cb_admin-section__header">
+          <h2><Shield /> User Management</h2>
+          <button
+            className="cb_button cb_button--small cb_button--secondary"
+            onClick={() => { setShowAddUser(v => !v); setAddResult(null); }}
+          >
+            {showAddUser ? <><ChevronUp /> Hide</> : <><UserPlus /> Add User</>}
+          </button>
+        </div>
+
+        {showAddUser && (
+          <div className="cb_add-user-panel">
+            <div className="cb_form-row">
+              <div className="cb_form-group">
+                <label className="cb_label" htmlFor="new-user-name">Full Name</label>
+                <input
+                  id="new-user-name"
+                  type="text"
+                  className="cb_input"
+                  placeholder="e.g. Jane MacDonald"
+                  value={newUser.name}
+                  onChange={e => setNewUser(u => ({ ...u, name: e.target.value }))}
+                />
+              </div>
+              <div className="cb_form-group">
+                <label className="cb_label" htmlFor="new-user-email">Email</label>
+                <input
+                  id="new-user-email"
+                  type="email"
+                  className="cb_input"
+                  placeholder="e.g. jane.macdonald@scotgov.uk"
+                  value={newUser.email}
+                  onChange={e => setNewUser(u => ({ ...u, email: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="cb_form-row">
+              <div className="cb_form-group">
+                <label className="cb_label" htmlFor="new-user-role">Role</label>
+                <select
+                  id="new-user-role"
+                  className="cb_input cb_admin-role-select"
+                  value={newUser.role}
+                  onChange={e => setNewUser(u => ({ ...u, role: e.target.value }))}
+                >
+                  {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div className="cb_form-group">
+                <label className="cb_label" htmlFor="new-user-team">Team</label>
+                <input
+                  id="new-user-team"
+                  type="text"
+                  className="cb_input"
+                  placeholder="e.g. Platform Engineering"
+                  value={newUser.team}
+                  onChange={e => setNewUser(u => ({ ...u, team: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="cb_add-user-panel__actions">
+              <button
+                className="cb_button"
+                onClick={handleAddUser}
+                disabled={adding || !newUser.email || !newUser.name || !newUser.team}
+              >
+                {adding ? 'Creating...' : 'Create User'}
+              </button>
+              <span className="cb_add-user-panel__hint">
+                A temporary password will be generated. The user must change it on first login.
+              </span>
+            </div>
+
+            {addResult && (
+              <div className="cb_modal__result">
+                {addResult.ok ? (
+                  <div className="cb_confirmation" aria-live="polite">
+                    <CheckCircle />
+                    <div>
+                      <p className="cb_confirmation__title">{addResult.message}</p>
+                      {addResult.tempPassword && (
+                        <div className="cb_temp-password">
+                          <span className="cb_label">Temporary password (share securely):</span>
+                          <div className="cb_temp-password__value">
+                            <code>{showTempPassword ? addResult.tempPassword : '\u2022'.repeat(16)}</code>
+                            <button
+                              className="cb_button cb_button--small cb_button--secondary"
+                              onClick={() => setShowTempPassword(v => !v)}
+                              title={showTempPassword ? 'Hide' : 'Show'}
+                            >
+                              {showTempPassword ? <EyeOff /> : <Eye />}
+                            </button>
+                            <button
+                              className="cb_button cb_button--small cb_button--secondary"
+                              onClick={() => copyPassword(addResult.tempPassword!)}
+                              title="Copy to clipboard"
+                            >
+                              <Copy />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="cb_warning">
+                    <AlertCircle />
+                    <p>{addResult.message}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="cb_kb-toolbar">
           <div className="cb_kb-search">
@@ -178,9 +341,11 @@ function AdminPageContent() {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map(user => (
+                {filteredUsers.map(user => {
+                  const isSelf = currentUser?.email === user.email;
+                  return (
                   <tr key={user.email} className={!user.active ? 'cb_admin-table__row--disabled' : ''}>
-                    <td>{user.name}</td>
+                    <td>{user.name}{isSelf && ' (you)'}</td>
                     <td>{user.email}</td>
                     <td>
                       <StatusTag colour={ROLE_COLOUR[user.role] || 'grey'}>
@@ -198,6 +363,8 @@ function AdminPageContent() {
                         <button
                           className="cb_button cb_button--small cb_button--danger"
                           onClick={() => openModal(user, 'disable')}
+                          disabled={isSelf}
+                          title={isSelf ? 'Cannot disable your own account' : undefined}
                         >
                           <UserX /> Disable
                         </button>
@@ -212,12 +379,15 @@ function AdminPageContent() {
                       <button
                         className="cb_button cb_button--small cb_button--secondary"
                         onClick={() => openModal(user, 'role')}
+                        disabled={isSelf}
+                        title={isSelf ? 'Cannot change your own role' : undefined}
                       >
                         Change Role
                       </button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

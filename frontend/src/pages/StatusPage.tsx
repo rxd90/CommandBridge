@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { PageHeader } from '../components/PageHeader';
 import { StatusLight } from '../components/StatusLight';
 
@@ -62,7 +62,11 @@ const STATUS_DATA: Category[] = [
   },
 ];
 
+type Filter = Status | null;
+
 export function StatusPage() {
+  const [filter, setFilter] = useState<Filter>(null);
+
   const totalServices = useMemo(
     () => STATUS_DATA.reduce((sum, cat) => sum + cat.services.length, 0),
     [],
@@ -80,38 +84,64 @@ export function StatusPage() {
     return { good, warn, bad };
   }, []);
 
+  const filteredData = useMemo(() => {
+    if (!filter) return STATUS_DATA;
+    return STATUS_DATA
+      .map((cat) => ({
+        ...cat,
+        services: cat.services.filter((svc) => svc.status === filter),
+      }))
+      .filter((cat) => cat.services.length > 0);
+  }, [filter]);
+
+  const toggleFilter = (status: Filter) =>
+    setFilter((prev) => (prev === status ? null : status));
+
   return (
     <>
       <PageHeader
         label="ScotAccount Health"
         title="Service Status"
-        subtitle={`Single-region deployment — ${REGION}. Status signals sourced from CloudWatch alarms and health checks.`}
+        subtitle={`Single-region deployment: ${REGION}. Status signals sourced from CloudWatch alarms and health checks.`}
       />
 
       <div className="cb_legend">
         <span><StatusLight status="good" /> Operational</span>
         <span><StatusLight status="warn" /> Degraded</span>
         <span><StatusLight status="bad" /> Outage</span>
-        <span className="cb_legend__timestamp">Manual snapshot</span>
+
       </div>
 
       <div className="cb_status-summary">
-        <div className="cb_status-summary__item cb_status-summary__item--good">
+        <button
+          className={`cb_status-summary__item cb_status-summary__item--good${filter === 'good' ? ' cb_status-summary__item--active' : ''}`}
+          onClick={() => toggleFilter('good')}
+        >
           <span className="cb_status-summary__count">{summary.good}</span>
           <span className="cb_status-summary__label">Operational</span>
-        </div>
-        <div className="cb_status-summary__item cb_status-summary__item--warn">
+        </button>
+        <button
+          className={`cb_status-summary__item cb_status-summary__item--warn${filter === 'warn' ? ' cb_status-summary__item--active' : ''}`}
+          onClick={() => toggleFilter('warn')}
+        >
           <span className="cb_status-summary__count">{summary.warn}</span>
           <span className="cb_status-summary__label">Degraded</span>
-        </div>
-        <div className="cb_status-summary__item cb_status-summary__item--bad">
+        </button>
+        <button
+          className={`cb_status-summary__item cb_status-summary__item--bad${filter === 'bad' ? ' cb_status-summary__item--active' : ''}`}
+          onClick={() => toggleFilter('bad')}
+        >
           <span className="cb_status-summary__count">{summary.bad}</span>
           <span className="cb_status-summary__label">Outage</span>
-        </div>
-        <div className="cb_status-summary__item">
+        </button>
+        <button
+          className={`cb_status-summary__item${filter === null ? '' : ' cb_status-summary__item--active'}`}
+          onClick={() => setFilter(null)}
+          disabled={filter === null}
+        >
           <span className="cb_status-summary__count">{totalServices}</span>
           <span className="cb_status-summary__label">Total Services</span>
-        </div>
+        </button>
       </div>
 
       <div className="cb_matrix-wrap">
@@ -124,7 +154,7 @@ export function StatusPage() {
             </tr>
           </thead>
           <tbody>
-            {STATUS_DATA.map((cat) => (
+            {filteredData.map((cat) => (
               <Fragment key={cat.name}>
                 <tr>
                   <td colSpan={3} className="cb_matrix__category">{cat.name}</td>
@@ -143,8 +173,7 @@ export function StatusPage() {
       </div>
 
       <p className="cb_footer cb_footer--inline">
-        ScotAccount operates exclusively in AWS {REGION}. Status display is manually maintained.
-        Live CloudWatch integration is planned.
+        ScotAccount operates exclusively in AWS {REGION}.
       </p>
     </>
   );

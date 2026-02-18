@@ -1,6 +1,6 @@
 """Audit logging tests with moto DynamoDB mocking.
 
-Tests lambdas/shared/audit.py — writes action records to DynamoDB.
+Tests lambdas/shared/audit.py - writes action records to DynamoDB.
 """
 
 import importlib

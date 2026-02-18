@@ -1,26 +1,46 @@
 import { config } from '../config';
 import { getAccessToken } from './auth';
-import type { ExecuteResult, KBListResponse, KBArticleResponse, KBVersionSummary, AuditListResponse, AdminUser } from '../types';
+import type { ExecuteResult, KBListResponse, KBArticleResponse, KBVersionSummary, AuditListResponse, AdminUser, CreateUserResponse, ActivityListResponse, ActiveUser } from '../types';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = getAccessToken();
   if (!token) {
     throw new Error('Not authenticated');
   }
-  const res = await fetch(`${config.apiBaseUrl}${path}`, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+  let res: Response;
+  try {
+    res = await fetch(`${config.apiBaseUrl}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('Request timed out');
+    }
+    throw err;
+  }
+  clearTimeout(timeoutId);
 
   let data: Record<string, unknown>;
   try {
     data = await res.json();
   } catch {
     throw new Error(`Request failed (${res.status})`);
+  }
+  if (res.status === 401) {
+    // Token expired or invalid - clear session and redirect to login
+    sessionStorage.removeItem('cb_session');
+    window.location.href = '/login';
+    throw new Error('Session expired. Redirecting to login.');
   }
   if (!res.ok) {
     throw new Error((data.message as string) || `Request failed (${res.status})`);
@@ -274,6 +294,25 @@ export async function enableAdminUser(email: string): Promise<{ message: string 
   });
 }
 
+export async function createAdminUser(data: {
+  email: string;
+  name: string;
+  role: string;
+  team: string;
+}): Promise<CreateUserResponse> {
+  if (config.localDev) {
+    return {
+      message: `User ${data.email} created (local dev mode)`,
+      temporary_password: 'TempPass123!',
+    };
+  }
+
+  return request<CreateUserResponse>('/admin/users', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function setAdminUserRole(email: string, role: string): Promise<{ message: string }> {
   if (config.localDev) {
     return { message: `User ${email} role changed to ${role} (local dev mode)` };
@@ -283,4 +322,37 @@ export async function setAdminUserRole(email: string, role: string): Promise<{ m
     method: 'POST',
     body: JSON.stringify({ role }),
   });
+}
+
+// ── Activity API ─────────────────────────────────────────────────
+
+export async function listActivity(params?: {
+  user?: string;
+  event_type?: string;
+  start?: number;
+  end?: number;
+  limit?: number;
+  cursor?: string;
+}): Promise<ActivityListResponse> {
+  if (config.localDev) {
+    return { events: [], cursor: null };
+  }
+
+  const qs = new URLSearchParams();
+  if (params?.user) qs.set('user', params.user);
+  if (params?.event_type) qs.set('event_type', params.event_type);
+  if (params?.start) qs.set('start', String(params.start));
+  if (params?.end) qs.set('end', String(params.end));
+  if (params?.limit) qs.set('limit', String(params.limit));
+  if (params?.cursor) qs.set('cursor', params.cursor);
+  const query = qs.toString();
+  return request<ActivityListResponse>(`/activity${query ? `?${query}` : ''}`);
+}
+
+export async function getActiveUsers(sinceMinutes = 15): Promise<{ active_users: ActiveUser[] }> {
+  if (config.localDev) {
+    return { active_users: [] };
+  }
+
+  return request<{ active_users: ActiveUser[] }>(`/activity?active=true&since_minutes=${sinceMinutes}`);
 }

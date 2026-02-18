@@ -4,10 +4,12 @@ service: Cognito User Pool
 owner: Identity Platform
 category: Security
 tags: [session, revoke, cognito, compromised, tokens, scotaccount]
-last_reviewed: 2026-02-16
+last_reviewed: 2026-02-17
 ---
 
 # Session Revocation: force sign-out compromised users
+
+> **Note:** Replace `$USER_POOL_ID` in commands below with the value from `terraform output cognito_user_pool_id`.
 
 ## Symptoms
 
@@ -21,14 +23,14 @@ last_reviewed: 2026-02-16
 1. **Verify the user exists and is active**
     ```bash
     aws cognito-idp admin-get-user \
-      --user-pool-id eu-west-2_quMz1HdKl \
+      --user-pool-id $USER_POOL_ID \
       --username <email>
     ```
 
 2. **Check recent auth events for the user**
     ```bash
     aws cognito-idp admin-list-user-auth-events \
-      --user-pool-id eu-west-2_quMz1HdKl \
+      --user-pool-id $USER_POOL_ID \
       --username <email> \
       --max-results 10
     ```
@@ -49,7 +51,7 @@ last_reviewed: 2026-02-16
 - **Force password reset** if credentials are confirmed compromised
     ```bash
     aws cognito-idp admin-reset-user-password \
-      --user-pool-id eu-west-2_quMz1HdKl \
+      --user-pool-id $USER_POOL_ID \
       --username <email>
     ```
 - **Disable the account** using the **Disable User Account** action if immediate lockout is needed

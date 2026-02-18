@@ -141,6 +141,14 @@ resource "aws_apigatewayv2_route" "admin_list_users" {
   authorization_type = "JWT"
 }
 
+resource "aws_apigatewayv2_route" "admin_create_user" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "POST /admin/users"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+
 resource "aws_apigatewayv2_route" "admin_disable_user" {
   api_id             = aws_apigatewayv2_api.main.id
   route_key          = "POST /admin/users/{email}/disable"
@@ -165,10 +173,32 @@ resource "aws_apigatewayv2_route" "admin_set_role" {
   authorization_type = "JWT"
 }
 
+# Activity Routes (tracking user interactions)
+resource "aws_apigatewayv2_route" "post_activity" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "POST /activity"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+
+resource "aws_apigatewayv2_route" "get_activity" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "GET /activity"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.main.id
   name        = "$default"
   auto_deploy = true
+
+  default_route_settings {
+    throttling_burst_limit = 50
+    throttling_rate_limit  = 100
+  }
 
   tags = {
     Name = "CommandBridge API Stage"

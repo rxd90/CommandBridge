@@ -55,6 +55,8 @@ module "lambdas" {
   kb_table_arn          = module.storage.kb_table_arn
   users_table_name      = module.storage.users_table_name
   users_table_arn       = module.storage.users_table_arn
+  activity_table_name   = module.storage.activity_table_name
+  activity_table_arn    = module.storage.activity_table_arn
   cognito_user_pool_id  = module.cognito.user_pool_id
   cognito_user_pool_arn = module.cognito.user_pool_arn
 }

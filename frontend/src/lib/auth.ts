@@ -59,11 +59,15 @@ export function getCurrentUser(): User | null {
   }
 
   try {
-    const payload = JSON.parse(atob(session.id_token!.split('.')[1]));
+    const token = session.id_token;
+    if (!token) return null;
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1]));
     return {
-      email: payload.email || payload['cognito:username'],
-      name: payload.name || payload.email,
-      groups: payload['cognito:groups'] || [],
+      email: payload.email || payload['cognito:username'] || '',
+      name: payload.name || payload.email || '',
+      groups: Array.isArray(payload['cognito:groups']) ? payload['cognito:groups'] : [],
     };
   } catch {
     return null;
@@ -74,7 +78,7 @@ export function getAccessToken(): string | null {
   const session = getSession();
   if (!session) return null;
   if (config.localDev) return 'local-dev-token';
-  // Use id_token — it contains email and cognito:groups claims.
+  // Use id_token - it contains email and cognito:groups claims.
   // The access_token only has username/sub, so the backend can't resolve the user.
   return session.id_token || session.access_token || null;
 }

@@ -1,13 +1,20 @@
-import { Outlet, NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Activity, Zap, FileText, Shield, LogOut } from 'lucide-react';
+import { useEffect } from 'react';
+import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { LayoutDashboard, BookOpen, Activity, Zap, Shield, BarChart3, LogOut } from 'lucide-react';
 import { SiteHeader } from './SiteHeader';
 import { useAuth } from '../hooks/useAuth';
 import { useRbac } from '../hooks/useRbac';
 import { StatusTag } from './StatusTag';
+import { trackPageView } from '../lib/activity';
 
 export function Layout() {
   const { user, logout } = useAuth();
   const { role, label } = useRbac();
+  const location = useLocation();
+
+  useEffect(() => {
+    trackPageView(location.pathname);
+  }, [location.pathname]);
 
   const roleColour = role === 'L1-operator' ? 'green'
     : role === 'L2-engineer' ? 'orange'
@@ -34,32 +41,33 @@ export function Layout() {
             <li className="cb_nav__item">
               <NavLink to="/status" className={({ isActive }) =>
                 `cb_nav__link${isActive ? ' cb_nav__link--active' : ''}`
-              }><Activity /> Status</NavLink>
+              }><Activity /> Service Status</NavLink>
             </li>
             <li className="cb_nav__item">
               <NavLink to="/actions" className={({ isActive }) =>
                 `cb_nav__link${isActive ? ' cb_nav__link--active' : ''}`
               }><Zap /> Actions</NavLink>
             </li>
-            {(role === 'L2-engineer' || role === 'L3-admin') && (
+          </ul>
+
+          {role === 'L3-admin' && (
+            <ul className="cb_nav__list cb_nav__list--right">
               <li className="cb_nav__item">
-                <NavLink to="/audit" className={({ isActive }) =>
+                <NavLink to="/activity" className={({ isActive }) =>
                   `cb_nav__link${isActive ? ' cb_nav__link--active' : ''}`
-                }><FileText /> Audit</NavLink>
+                }><BarChart3 /> Activity</NavLink>
               </li>
-            )}
-            {role === 'L3-admin' && (
               <li className="cb_nav__item">
                 <NavLink to="/admin" className={({ isActive }) =>
                   `cb_nav__link${isActive ? ' cb_nav__link--active' : ''}`
                 }><Shield /> Admin</NavLink>
               </li>
-            )}
-          </ul>
+            </ul>
+          )}
 
           {user && (
             <div className="cb_nav-user">
-              <span className="cb_nav-user__name">{user.name}</span>
+              <span className="cb_nav-user__name">{user.name || user.email}</span>
               <StatusTag colour={roleColour}>{label}</StatusTag>
               <button className="cb_nav-user__logout" onClick={logout}><LogOut /> Sign out</button>
             </div>
@@ -72,7 +80,7 @@ export function Layout() {
       </main>
 
       <footer className="cb_wrapper cb_footer">
-        CommandBridge — Scottish Government Digital Identity
+        CommandBridge - Scottish Government Digital Identity
       </footer>
     </>
   );

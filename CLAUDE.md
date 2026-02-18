@@ -1,4 +1,4 @@
-# CommandBridge — Claude Code Instructions
+# CommandBridge - Claude Code Instructions
 
 ## Infrastructure Management
 

@@ -36,7 +36,7 @@ import {
   updateKBArticle,
 } from '../api';
 
-describe('KB API — localDev mode', () => {
+describe('KB API - localDev mode', () => {
   describe('listKBArticles', () => {
     it('returns a list of articles', async () => {
       const result = await listKBArticles();
@@ -200,7 +200,7 @@ describe('KB API — localDev mode', () => {
   });
 });
 
-describe('Action API — localDev mode', () => {
+describe('Action API - localDev mode', () => {
   describe('executeAction', () => {
     it('returns a simulated result', async () => {
       const result = await executeAction('restart-pods', 'INC-001', 'test reason');

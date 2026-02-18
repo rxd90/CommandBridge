@@ -104,7 +104,7 @@ describe('App component', () => {
     const nav = screen.getByRole('navigation');
     expect(within(nav).getByText('Home')).toBeInTheDocument();
     expect(within(nav).getByText('Knowledge Base')).toBeInTheDocument();
-    expect(within(nav).getByText('Status')).toBeInTheDocument();
+    expect(within(nav).getByText('Service Status')).toBeInTheDocument();
     expect(within(nav).getByText('Actions')).toBeInTheDocument();
   });
 

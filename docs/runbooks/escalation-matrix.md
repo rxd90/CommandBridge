@@ -13,15 +13,15 @@ last_reviewed: 2026-02-14
 
 | Severity | Criteria | Response Time | Update Cadence |
 |---|---|---|---|
-| **P1 — Critical** | Complete service outage or >50% of users affected. Data loss risk. Security breach. | 15 minutes | Every 15 min |
-| **P2 — Major** | Significant degradation affecting 10-50% of users. Key workflow blocked. | 30 minutes | Every 30 min |
-| **P3 — Minor** | Limited impact affecting <10% of users. Workaround available. | 2 hours | Every 2 hours |
+| **P1 - Critical** | Complete service outage or >50% of users affected. Data loss risk. Security breach. | 15 minutes | Every 15 min |
+| **P2 - Major** | Significant degradation affecting 10-50% of users. Key workflow blocked. | 30 minutes | Every 30 min |
+| **P3 - Minor** | Limited impact affecting <10% of users. Workaround available. | 2 hours | Every 2 hours |
 
 ## Escalation Contacts by Service Area
 
 | Service Area | L2 On-Call | L3 Escalation | Vendor |
 |---|---|---|---|
-| **Auth / OIDC** | Identity Platform on-call | IAM/Security Lead | — |
+| **Auth / OIDC** | Identity Platform on-call | IAM/Security Lead | - |
 | **Enrolment** | Enrolment Team on-call | Enrolment Lead | IDV Provider support |
 | **MFA / SMS** | Trust & Safety on-call | Security Lead | SMS Gateway support |
 | **API Gateway** | Platform Ops on-call | Platform Engineering Lead | AWS Support |
@@ -71,4 +71,4 @@ L1 Operator detects issue
 ## Escalation
 
 !!! warning "Emergency escalation"
-    For suspected data breaches, PII exposure, or regulatory incidents, escalate immediately to the Security Lead and Legal — do not wait for severity assessment.
+    For suspected data breaches, PII exposure, or regulatory incidents, escalate immediately to the Security Lead and Legal - do not wait for severity assessment.

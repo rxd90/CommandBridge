@@ -11,7 +11,7 @@ last_reviewed: 2026-02-14
 
 ## Overview
 
-The **Purge Cache** action flushes the ElastiCache Redis cluster and invalidates CloudFront CDN distributions. This is a medium-risk action — L1 operators can execute it directly, but L2+ can also approve requests.
+The **Purge Cache** action flushes the ElastiCache Redis cluster and invalidates CloudFront CDN distributions. This is a medium-risk action - L1 operators can execute it directly, but L2+ can also approve requests.
 
 ## When to Use
 
@@ -27,10 +27,10 @@ The **Purge Cache** action flushes the ElastiCache Redis cluster and invalidates
 
 | Impact | What happens |
 |---|---|
-| **Session invalidation** | Active user sessions in Redis are destroyed — users must re-authenticate |
-| **CDN warming** | CloudFront edge caches are cleared — first requests will be slower until cache warms |
+| **Session invalidation** | Active user sessions in Redis are destroyed - users must re-authenticate |
+| **CDN warming** | CloudFront edge caches are cleared - first requests will be slower until cache warms |
 | **Increased backend load** | Temporarily higher request rate to origin servers while caches rebuild |
-| **JWKS cache reset** | Auth services will re-fetch signing keys — brief window of increased latency |
+| **JWKS cache reset** | Auth services will re-fetch signing keys - brief window of increased latency |
 
 ## Step-by-Step
 
@@ -42,14 +42,14 @@ The **Purge Cache** action flushes the ElastiCache Redis cluster and invalidates
 3. **Enter your ticket number and reason**
 4. **Click Execute**
 5. **Monitor recovery:**
-   - Check CloudWatch `CacheHitRate` metric — should recover within 5-10 minutes
+   - Check CloudWatch `CacheHitRate` metric - should recover within 5-10 minutes
    - Verify login flow works end-to-end after session cache clear
 
 ## When NOT to Purge
 
-- If the issue is isolated to a single user — investigate their session specifically
-- During peak traffic — prefer off-peak or coordinate with L2
-- If the root cause is a code bug — purging cache will only temporarily mask it
+- If the issue is isolated to a single user - investigate their session specifically
+- During peak traffic - prefer off-peak or coordinate with L2
+- If the root cause is a code bug - purging cache will only temporarily mask it
 
 ## Escalation
 

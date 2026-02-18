@@ -6,7 +6,7 @@ function makeUser(groups: string[]): User {
   return { email: 'test@example.com', name: 'Test User', groups };
 }
 
-describe('rbac — getUserRole', () => {
+describe('rbac - getUserRole', () => {
   it('returns the first group as the role', () => {
     const user = makeUser(['L2-engineer', 'L1-operator']);
     expect(getUserRole(user)).toBe('L2-engineer');
@@ -22,7 +22,7 @@ describe('rbac — getUserRole', () => {
   });
 });
 
-describe('rbac — getRoleLevel', () => {
+describe('rbac - getRoleLevel', () => {
   it('returns 1 for L1-operator', () => {
     const user = makeUser(['L1-operator']);
     expect(getRoleLevel(user)).toBe(1);
@@ -58,7 +58,7 @@ describe('rbac — getRoleLevel', () => {
   });
 });
 
-describe('rbac — getRoleLabel', () => {
+describe('rbac - getRoleLabel', () => {
   it('returns "L1 Operator" for L1-operator', () => {
     const user = makeUser(['L1-operator']);
     expect(getRoleLabel(user)).toBe('L1 Operator');

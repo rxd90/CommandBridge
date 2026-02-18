@@ -4,7 +4,7 @@ service: Platform
 owner: Platform Engineering
 category: Infrastructure
 tags: [architecture, overview, aws, infrastructure, reference, scotaccount]
-last_reviewed: 2026-02-14
+last_reviewed: 2026-02-17
 ---
 
 # Architecture Overview: ScotAccount Platform
@@ -33,19 +33,20 @@ last_reviewed: 2026-02-14
          │         │            │             │
     ┌────┴────┐ ┌──┴───┐ ┌─────┴─────┐ ┌─────┴─────┐
     │  Redis  │ │ RDS  │ │ DynamoDB  │ │  Secrets  │
-    │ (Cache) │ │(Aurora)│ │ (Audit/KB)│ │  Manager  │
+    │ (Cache) │ │(Aurora)│ │ (4 tables)│ │  Manager  │
     └─────────┘ └──────┘ └───────────┘ └───────────┘
 ```
 
 ## Authentication Flow
 
 1. User navigates to the CommandBridge portal (CloudFront)
-2. Portal redirects to **Cognito Hosted UI** for login (PKCE OAuth flow)
-3. User authenticates with email + password (optionally with MFA)
-4. Cognito issues **JWT tokens** (access, ID, refresh) containing `cognito:groups` claim
-5. Portal stores tokens in session storage and includes access token in API requests
-6. **API Gateway JWT Authorizer** validates tokens against the Cognito User Pool
-7. Lambda handler extracts `cognito:groups` from the JWT to enforce RBAC
+2. Portal presents an in-app login form (no redirect to Cognito Hosted UI)
+3. User enters email + password; the portal authenticates via **SRP (Secure Remote Password)** using the Amplify Auth SDK directly against Cognito
+4. If MFA is enabled, user enters TOTP code; if first login, user sets a new password
+5. Cognito issues **JWT tokens** (access, ID, refresh) containing `cognito:groups` claim
+6. Portal stores tokens in session storage and includes the ID token in API requests
+7. **API Gateway JWT Authorizer** validates tokens against the Cognito User Pool
+8. Lambda handler extracts `cognito:groups` from the JWT to enforce RBAC
 
 ## Key AWS Services
 
@@ -53,8 +54,8 @@ last_reviewed: 2026-02-14
 |---|---|---|
 | **Cognito** | User authentication, RBAC groups | eu-west-2 |
 | **API Gateway** | HTTP API with JWT authorization | eu-west-2 |
-| **Lambda** | CommandBridge backend (actions, KB, audit) | eu-west-2 |
-| **DynamoDB** | Audit log + Knowledge Base storage | eu-west-2 |
+| **Lambda** | CommandBridge backend (actions, KB, audit, users, activity) | eu-west-2 |
+| **DynamoDB** | Audit log, Knowledge Base, Users, Activity tracking | eu-west-2 |
 | **S3** | Static portal hosting | eu-west-2 |
 | **CloudFront** | CDN, HTTPS termination, WAF integration | Global |
 | **EKS** | ScotAccount auth and IDV services | eu-west-2 |
@@ -75,4 +76,4 @@ last_reviewed: 2026-02-14
 
 ## Infrastructure Management
 
-All infrastructure is managed by **Terraform** in the `infra/` directory. Never modify AWS resources directly via the CLI or Console — see the Infrastructure Changes section in the README.
+All infrastructure is managed by **Terraform** in the `infra/` directory. Never modify AWS resources directly via the CLI or Console - see the Infrastructure Changes section in the README.

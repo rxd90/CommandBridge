@@ -6,8 +6,18 @@ variable "kb_table_name" { type = string }
 variable "kb_table_arn" { type = string }
 variable "users_table_name" { type = string }
 variable "users_table_arn" { type = string }
+variable "activity_table_name" { type = string }
+variable "activity_table_arn" { type = string }
 variable "cognito_user_pool_id" { type = string }
 variable "cognito_user_pool_arn" { type = string }
+
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
+locals {
+  account_id = data.aws_caller_identity.current.account_id
+  region     = data.aws_region.current.name
+}
 
 data "aws_iam_policy_document" "lambda_assume" {
   statement {
@@ -35,8 +45,6 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
 }
 
 # Scoped permissions for operational actions
-# TODO: Scope wildcard resources to specific ARNs (CloudWatch log groups,
-# ElastiCache clusters, SSM documents, ECS services, etc.)
 data "aws_iam_policy_document" "actions" {
   # DynamoDB audit table
   statement {
@@ -52,62 +60,81 @@ data "aws_iam_policy_document" "actions" {
 
   # CloudWatch Logs (pull-logs action)
   statement {
-    actions   = ["logs:FilterLogEvents", "logs:DescribeLogGroups"]
-    resources = ["*"]
+    actions = ["logs:FilterLogEvents", "logs:DescribeLogGroups"]
+    resources = [
+      "arn:aws:logs:${local.region}:${local.account_id}:log-group:*",
+      "arn:aws:logs:${local.region}:${local.account_id}:log-group:*:*",
+    ]
   }
 
-  # ElastiCache (purge-cache action)
+  # ElastiCache (purge-cache, flush-token-cache actions)
   statement {
-    actions   = ["elasticache:DescribeCacheClusters"]
-    resources = ["*"]
+    actions = ["elasticache:DescribeCacheClusters", "elasticache:ModifyReplicationGroup"]
+    resources = [
+      "arn:aws:elasticache:${local.region}:${local.account_id}:cluster:*",
+      "arn:aws:elasticache:${local.region}:${local.account_id}:replicationgroup:*",
+    ]
   }
 
-  # SSM (restart-pods, purge-cache via RunCommand)
+  # SSM (restart-pods, purge-cache via RunCommand, toggle-idv-provider)
   statement {
     actions   = ["ssm:SendCommand", "ssm:GetCommandInvocation"]
-    resources = ["*"]
+    resources = ["arn:aws:ssm:${local.region}:${local.account_id}:*"]
+  }
+  statement {
+    actions   = ["ssm:PutParameter"]
+    resources = ["arn:aws:ssm:${local.region}:${local.account_id}:parameter/*"]
   }
 
   # ECS (scale-service action)
   statement {
     actions   = ["ecs:UpdateService", "ecs:DescribeServices"]
-    resources = ["*"]
+    resources = ["arn:aws:ecs:${local.region}:${local.account_id}:service/*/*"]
   }
 
   # Route 53 (failover-region action)
   statement {
     actions   = ["route53:UpdateHealthCheck", "route53:GetHealthCheck"]
-    resources = ["*"]
+    resources = ["arn:aws:route53:::healthcheck/*"]
   }
 
   # WAF (blacklist-ip action)
   statement {
-    actions   = ["wafv2:UpdateIPSet", "wafv2:GetIPSet"]
-    resources = ["*"]
+    actions = ["wafv2:UpdateIPSet", "wafv2:GetIPSet"]
+    resources = [
+      "arn:aws:wafv2:${local.region}:${local.account_id}:regional/ipset/*/*",
+      "arn:aws:wafv2:${local.region}:${local.account_id}:global/ipset/*/*",
+    ]
   }
 
   # CloudFront (purge-cache action)
   statement {
     actions   = ["cloudfront:CreateInvalidation"]
-    resources = ["*"]
+    resources = ["arn:aws:cloudfront::${local.account_id}:distribution/*"]
   }
 
   # Secrets Manager (rotate-secrets action)
   statement {
     actions   = ["secretsmanager:RotateSecret", "secretsmanager:DescribeSecret"]
-    resources = ["*"]
+    resources = ["arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:*"]
   }
 
   # AppConfig (maintenance-mode, pause-enrolments actions)
   statement {
-    actions   = ["appconfig:StartDeployment", "appconfig:GetConfiguration"]
-    resources = ["*"]
+    actions = [
+      "appconfig:StartDeployment",
+      "appconfig:GetConfiguration",
+      "appconfig:ListApplications",
+      "appconfig:ListConfigurationProfiles",
+      "appconfig:CreateHostedConfigurationVersion",
+    ]
+    resources = ["arn:aws:appconfig:${local.region}:${local.account_id}:*"]
   }
 
   # ELB (drain-traffic action)
   statement {
     actions   = ["elasticloadbalancing:DeregisterTargets", "elasticloadbalancing:DescribeTargetGroups"]
-    resources = ["*"]
+    resources = ["arn:aws:elasticloadbalancing:${local.region}:${local.account_id}:targetgroup/*/*"]
   }
 
   # DynamoDB users table (RBAC authorization)
@@ -116,12 +143,28 @@ data "aws_iam_policy_document" "actions" {
     resources = [var.users_table_arn]
   }
 
-  # Cognito (disable-user, revoke-sessions, enable-user executors)
+  # DynamoDB activity table (user interaction tracking)
+  statement {
+    actions   = ["dynamodb:PutItem", "dynamodb:BatchWriteItem", "dynamodb:Query", "dynamodb:Scan"]
+    resources = [var.activity_table_arn, "${var.activity_table_arn}/index/*"]
+  }
+
+  # S3 (export-audit-log action)
+  statement {
+    actions   = ["s3:PutObject"]
+    resources = ["arn:aws:s3:::${var.project_name}.site/audit-exports/*"]
+  }
+
+  # Cognito (disable-user, revoke-sessions, enable-user executors + admin user creation + role changes)
   statement {
     actions = [
       "cognito-idp:AdminDisableUser",
       "cognito-idp:AdminEnableUser",
-      "cognito-idp:AdminUserGlobalSignOut"
+      "cognito-idp:AdminUserGlobalSignOut",
+      "cognito-idp:AdminCreateUser",
+      "cognito-idp:AdminAddUserToGroup",
+      "cognito-idp:AdminRemoveUserFromGroup",
+      "cognito-idp:AdminDeleteUser"
     ]
     resources = [var.cognito_user_pool_arn]
   }
@@ -146,11 +189,12 @@ resource "aws_lambda_function" "actions" {
 
   environment {
     variables = {
-      AUDIT_TABLE  = var.audit_table_name
-      KB_TABLE     = var.kb_table_name
-      USERS_TABLE  = var.users_table_name
-      USER_POOL_ID = var.cognito_user_pool_id
-      ENVIRONMENT  = var.environment
+      AUDIT_TABLE    = var.audit_table_name
+      KB_TABLE       = var.kb_table_name
+      USERS_TABLE    = var.users_table_name
+      ACTIVITY_TABLE = var.activity_table_name
+      USER_POOL_ID   = var.cognito_user_pool_id
+      ENVIRONMENT    = var.environment
     }
   }
 

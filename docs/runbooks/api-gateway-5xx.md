@@ -20,7 +20,7 @@ last_reviewed: 2026-01-04
 
 1. **Identify top failing routes**
     ```bash
-    # CloudWatch Insights — top 5xx routes in last 30 minutes
+    # CloudWatch Insights - top 5xx routes in last 30 minutes
     fields @timestamp, httpMethod, path, status
     | filter status >= 500
     | stats count() as errors by path
