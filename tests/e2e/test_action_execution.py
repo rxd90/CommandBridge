@@ -19,7 +19,7 @@ class TestActionExecutionE2E:
 
     def test_l1_executes_low_risk_action_with_audit(self, e2e):
         """L1 executes pull-logs -> 200 + audit entry with result=success."""
-        seed_user(e2e['users_table'], 'l1@scotgov.uk', 'L1 User', 'L1-operator')
+        seed_user(e2e['users_table'], 'l1@gov.scot', 'L1 User', 'L1-operator')
 
         # Create CloudWatch log group so pull-logs executor succeeds
         logs = boto3.client('logs', region_name='eu-west-2')
@@ -37,7 +37,7 @@ class TestActionExecutionE2E:
                 'reason': 'Investigating 5xx errors',
                 'target': 'identity-service',
             },
-            email='l1@scotgov.uk',
+            email='l1@gov.scot',
             groups=['L1-operator'],
         )
 
@@ -47,14 +47,14 @@ class TestActionExecutionE2E:
         # Verify audit entry was written
         items = e2e['audit_table'].scan()['Items']
         assert len(items) == 1
-        assert items[0]['user'] == 'l1@scotgov.uk'
+        assert items[0]['user'] == 'l1@gov.scot'
         assert items[0]['action'] == 'pull-logs'
         assert items[0]['result'] == 'success'
         assert items[0]['ticket'] == 'INC-2026-001'
 
     def test_l1_high_risk_action_returns_pending_approval(self, e2e):
         """L1 executes a high-risk action -> 202 pending_approval + audit."""
-        seed_user(e2e['users_table'], 'l1@scotgov.uk', 'L1 User', 'L1-operator')
+        seed_user(e2e['users_table'], 'l1@gov.scot', 'L1 User', 'L1-operator')
 
         resp = call_handler(
             e2e['handler'], '/actions/execute', 'POST',
@@ -63,7 +63,7 @@ class TestActionExecutionE2E:
                 'ticket': 'INC-2026-002',
                 'reason': 'Planned maintenance window',
             },
-            email='l1@scotgov.uk',
+            email='l1@gov.scot',
             groups=['L1-operator'],
         )
 
@@ -76,7 +76,7 @@ class TestActionExecutionE2E:
 
     def test_l2_executes_operational_action_directly(self, e2e):
         """L2 executes maintenance-mode directly -> 200."""
-        seed_user(e2e['users_table'], 'l2@scotgov.uk', 'L2 User', 'L2-engineer')
+        seed_user(e2e['users_table'], 'l2@gov.scot', 'L2 User', 'L2-engineer')
 
         # maintenance-mode executor calls SSM/AppConfig - patch it
         from unittest.mock import patch, MagicMock
@@ -90,7 +90,7 @@ class TestActionExecutionE2E:
                     'ticket': 'CHG-2026-001',
                     'reason': 'Planned maintenance',
                 },
-                email='l2@scotgov.uk',
+                email='l2@gov.scot',
                 groups=['L2-engineer'],
             )
 
@@ -101,13 +101,13 @@ class TestActionExecutionE2E:
 
     def test_missing_required_fields_returns_400(self, e2e):
         """Missing action/ticket/reason returns 400."""
-        seed_user(e2e['users_table'], 'l1@scotgov.uk', 'L1 User', 'L1-operator')
+        seed_user(e2e['users_table'], 'l1@gov.scot', 'L1 User', 'L1-operator')
 
         # Missing ticket
         resp = call_handler(
             e2e['handler'], '/actions/execute', 'POST',
             body={'action': 'pull-logs', 'reason': 'testing'},
-            email='l1@scotgov.uk',
+            email='l1@gov.scot',
             groups=['L1-operator'],
         )
         assert resp['statusCode'] == 400
@@ -115,7 +115,7 @@ class TestActionExecutionE2E:
 
     def test_invalid_ticket_format_returns_400(self, e2e):
         """Bad ticket format returns 400."""
-        seed_user(e2e['users_table'], 'l1@scotgov.uk', 'L1 User', 'L1-operator')
+        seed_user(e2e['users_table'], 'l1@gov.scot', 'L1 User', 'L1-operator')
 
         resp = call_handler(
             e2e['handler'], '/actions/execute', 'POST',
@@ -124,7 +124,7 @@ class TestActionExecutionE2E:
                 'ticket': 'BADFORMAT',
                 'reason': 'testing',
             },
-            email='l1@scotgov.uk',
+            email='l1@gov.scot',
             groups=['L1-operator'],
         )
         assert resp['statusCode'] == 400
@@ -132,7 +132,7 @@ class TestActionExecutionE2E:
 
     def test_request_endpoint_creates_pending_audit(self, e2e):
         """POST /actions/request creates audit entry with result=requested."""
-        seed_user(e2e['users_table'], 'l1@scotgov.uk', 'L1 User', 'L1-operator')
+        seed_user(e2e['users_table'], 'l1@gov.scot', 'L1 User', 'L1-operator')
 
         resp = call_handler(
             e2e['handler'], '/actions/request', 'POST',
@@ -141,7 +141,7 @@ class TestActionExecutionE2E:
                 'ticket': 'INC-2026-003',
                 'reason': 'Need maintenance ASAP',
             },
-            email='l1@scotgov.uk',
+            email='l1@gov.scot',
             groups=['L1-operator'],
         )
 

@@ -10,8 +10,8 @@ import pytest
 
 from tests.e2e.conftest import seed_user, call_handler
 
-L2_EMAIL = 'l2@scotgov.uk'
-L3_EMAIL = 'l3@scotgov.uk'
+L2_EMAIL = 'l2@gov.scot'
+L3_EMAIL = 'l3@gov.scot'
 
 
 class TestKBLifecycleE2E:

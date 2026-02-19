@@ -57,7 +57,7 @@ def rbac_users_raw():
 # ---------------------------------------------------------------------------
 # Helper - build API Gateway HTTP API v2 events
 # ---------------------------------------------------------------------------
-def make_apigw_event(path, method='GET', body=None, email='test@scotgov.uk', groups=None):
+def make_apigw_event(path, method='GET', body=None, email='test@gov.scot', groups=None):
     """Build a minimal API Gateway HTTP API v2 event.
 
     Matches the shape read by lambdas/actions/handler.py lines 21-27.

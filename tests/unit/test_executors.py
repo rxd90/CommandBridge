@@ -333,13 +333,13 @@ class TestRevokeSessionsExecutor:
             import importlib
             importlib.reload(revoke_sessions)
             result = revoke_sessions.execute({
-                'target': 'jane@scotgov.uk',
+                'target': 'jane@gov.scot',
             })
             assert result['status'] == 'success'
-            assert 'jane@scotgov.uk' in result['message']
+            assert 'jane@gov.scot' in result['message']
             mock_cognito.admin_user_global_sign_out.assert_called_once_with(
                 UserPoolId='eu-west-2_test',
-                Username='jane@scotgov.uk',
+                Username='jane@gov.scot',
             )
 
     def test_cognito_error_propagates(self):
@@ -354,7 +354,7 @@ class TestRevokeSessionsExecutor:
             importlib.reload(revoke_sessions)
             with pytest.raises(Exception, match='UserNotFoundException'):
                 revoke_sessions.execute({
-                    'target': 'ghost@scotgov.uk',
+                    'target': 'ghost@gov.scot',
                 })
 
 
@@ -445,27 +445,27 @@ class TestDisableUserExecutor:
 
         with patch('boto3.client') as mock_client, \
              patch.object(disable_user, 'update_user') as mock_update, \
-             patch.object(disable_user, 'get_user', return_value={'email': 'victim@scotgov.uk', 'role': 'L1-operator'}), \
+             patch.object(disable_user, 'get_user', return_value={'email': 'victim@gov.scot', 'role': 'L1-operator'}), \
              patch.dict(os.environ, {'USER_POOL_ID': 'eu-west-2_test'}):
             mock_cognito = MagicMock()
             mock_client.return_value = mock_cognito
             mock_cognito.admin_disable_user.return_value = {}
 
             result = disable_user.execute({
-                'target': 'victim@scotgov.uk',
+                'target': 'victim@gov.scot',
             })
             assert result['status'] == 'success'
-            assert 'victim@scotgov.uk' in result['message']
+            assert 'victim@gov.scot' in result['message']
 
             # Verify Cognito disable was called
             mock_cognito.admin_disable_user.assert_called_once_with(
                 UserPoolId='eu-west-2_test',
-                Username='victim@scotgov.uk',
+                Username='victim@gov.scot',
             )
 
             # Verify DynamoDB sync was called
             mock_update.assert_called_once_with(
-                'victim@scotgov.uk',
+                'victim@gov.scot',
                 {'active': False},
                 'executor:disable-user',
             )

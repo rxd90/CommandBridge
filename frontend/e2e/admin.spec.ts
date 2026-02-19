@@ -18,11 +18,14 @@ test.describe('Admin page', () => {
     await page.goto('/admin');
     await page.waitForSelector('.cb_admin-table');
 
-    // Should show Alice, Bob, Carol, Ricardo
+    // Should show all users
     await expect(page.locator('.cb_admin-table')).toContainText('Alice McGregor');
     await expect(page.locator('.cb_admin-table')).toContainText('Bob Fraser');
     await expect(page.locator('.cb_admin-table')).toContainText('Carol Stewart');
     await expect(page.locator('.cb_admin-table')).toContainText('Ricardo Alvarado');
+    await expect(page.locator('.cb_admin-table')).toContainText('Stuart McWilliams');
+    await expect(page.locator('.cb_admin-table')).toContainText('Laurie Brown');
+    await expect(page.locator('.cb_admin-table')).toContainText('James Callaghan');
   });
 
   test('RBAC permission matrix is displayed', async ({ page }) => {

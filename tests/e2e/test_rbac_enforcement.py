@@ -15,9 +15,9 @@ from tests.e2e.conftest import seed_user, call_handler
 # Test data
 # ---------------------------------------------------------------------------
 
-L1_EMAIL = 'l1@scotgov.uk'
-L2_EMAIL = 'l2@scotgov.uk'
-L3_EMAIL = 'l3@scotgov.uk'
+L1_EMAIL = 'l1@gov.scot'
+L2_EMAIL = 'l2@gov.scot'
+L3_EMAIL = 'l3@gov.scot'
 
 
 def _seed_all_roles(users_table):
@@ -220,12 +220,12 @@ class TestRoleResolution:
 
     def test_dynamodb_role_takes_precedence_over_jwt(self, e2e):
         """If DynamoDB says L3 but JWT says L1, DynamoDB wins."""
-        seed_user(e2e['users_table'], 'admin@scotgov.uk', 'Admin', 'L3-admin')
+        seed_user(e2e['users_table'], 'admin@gov.scot', 'Admin', 'L3-admin')
 
         # Pass L1-operator in JWT groups, but user is L3 in DynamoDB
         resp = call_handler(
             e2e['handler'], '/admin/users', 'GET',
-            email='admin@scotgov.uk', groups=['L1-operator'],
+            email='admin@gov.scot', groups=['L1-operator'],
         )
         # Should succeed because DynamoDB role is L3-admin
         assert resp['statusCode'] == 200

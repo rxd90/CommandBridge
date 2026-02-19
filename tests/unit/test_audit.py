@@ -38,13 +38,13 @@ def aws_env(monkeypatch):
 class TestAuditLogging:
     def test_log_action_writes_record(self, aws_env):
         record = aws_env['audit'].log_action(
-            user='alice@scotgov.uk',
+            user='alice@gov.scot',
             action='purge-cache',
             target='redis-eu-west-1',
             ticket='INC-2026-0212-001',
             result='success',
         )
-        assert record['user'] == 'alice@scotgov.uk'
+        assert record['user'] == 'alice@gov.scot'
         assert record['action'] == 'purge-cache'
         assert record['target'] == 'redis-eu-west-1'
         assert record['ticket'] == 'INC-2026-0212-001'
@@ -54,7 +54,7 @@ class TestAuditLogging:
 
     def test_approved_by_defaults_to_empty(self, aws_env):
         record = aws_env['audit'].log_action(
-            user='alice@scotgov.uk',
+            user='alice@gov.scot',
             action='purge-cache',
             target='',
             ticket='INC-001',
@@ -64,19 +64,19 @@ class TestAuditLogging:
 
     def test_approved_by_custom_value(self, aws_env):
         record = aws_env['audit'].log_action(
-            user='alice@scotgov.uk',
+            user='alice@gov.scot',
             action='maintenance-mode',
             target='production',
             ticket='CHG-001',
             result='success',
-            approved_by='carol@scotgov.uk',
+            approved_by='carol@gov.scot',
         )
-        assert record['approved_by'] == 'carol@scotgov.uk'
+        assert record['approved_by'] == 'carol@gov.scot'
 
     def test_details_stored_when_provided(self, aws_env):
         details = {'error': 'timeout', 'retries': 3}
         record = aws_env['audit'].log_action(
-            user='bob@scotgov.uk',
+            user='bob@gov.scot',
             action='restart-pods',
             target='auth-service',
             ticket='INC-002',
@@ -87,7 +87,7 @@ class TestAuditLogging:
 
     def test_details_absent_when_not_provided(self, aws_env):
         record = aws_env['audit'].log_action(
-            user='alice@scotgov.uk',
+            user='alice@gov.scot',
             action='pull-logs',
             target='idv-service',
             ticket='INC-003',
@@ -97,7 +97,7 @@ class TestAuditLogging:
 
     def test_record_scannable_from_table(self, aws_env):
         aws_env['audit'].log_action(
-            user='alice@scotgov.uk',
+            user='alice@gov.scot',
             action='purge-cache',
             target='redis',
             ticket='INC-004',
@@ -106,12 +106,12 @@ class TestAuditLogging:
         response = aws_env['table'].scan()
         assert response['Count'] == 1
         item = response['Items'][0]
-        assert item['user'] == 'alice@scotgov.uk'
+        assert item['user'] == 'alice@gov.scot'
         assert item['action'] == 'purge-cache'
 
     def test_denied_result_recorded(self, aws_env):
         record = aws_env['audit'].log_action(
-            user='alice@scotgov.uk',
+            user='alice@gov.scot',
             action='rotate-secrets',
             target='',
             ticket='INC-005',
@@ -121,7 +121,7 @@ class TestAuditLogging:
 
     def test_requested_result_recorded(self, aws_env):
         record = aws_env['audit'].log_action(
-            user='alice@scotgov.uk',
+            user='alice@gov.scot',
             action='maintenance-mode',
             target='production',
             ticket='INC-006',

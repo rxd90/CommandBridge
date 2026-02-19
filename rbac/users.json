@@ -3,7 +3,7 @@
     {
       "id": "alice",
       "name": "Alice McGregor",
-      "email": "alice.mcgregor@scotgov.uk",
+      "email": "alice.mcgregor@gov.scot",
       "role": "L1-operator",
       "team": "L1 Support",
       "active": true
@@ -11,7 +11,7 @@
     {
       "id": "bob",
       "name": "Bob Fraser",
-      "email": "bob.fraser@scotgov.uk",
+      "email": "bob.fraser@gov.scot",
       "role": "L1-operator",
       "team": "L1 Support",
       "active": true
@@ -19,7 +19,7 @@
     {
       "id": "carol",
       "name": "Carol Stewart",
-      "email": "carol.stewart@scotgov.uk",
+      "email": "carol.stewart@gov.scot",
       "role": "L2-engineer",
       "team": "Identity Platform",
       "active": true
@@ -27,9 +27,33 @@
     {
       "id": "ricardo",
       "name": "Ricardo Alvarado",
-      "email": "ricardo@scoven.co.uk",
+      "email": "ricardo@demo",
       "role": "L3-admin",
       "team": "Platform Engineering",
+      "active": true
+    },
+    {
+      "id": "stuart",
+      "name": "Stuart McWilliams",
+      "email": "stuart.mcwilliams@gov.scot",
+      "role": "L3-admin",
+      "team": "Platform Engineering",
+      "active": true
+    },
+    {
+      "id": "laurie",
+      "name": "Laurie Brown",
+      "email": "laurie.brown@gov.scot",
+      "role": "L2-engineer",
+      "team": "Identity Platform",
+      "active": true
+    },
+    {
+      "id": "james",
+      "name": "James Callaghan",
+      "email": "james.callaghan@gov.scot",
+      "role": "L1-operator",
+      "team": "L1 Support",
       "active": true
     }
   ]

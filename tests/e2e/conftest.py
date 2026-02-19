@@ -165,7 +165,7 @@ def seed_user(users_table, email, name, role, team='Test Team'):
 
 
 def call_handler(handler, path, method='GET', body=None,
-                 email='test@scotgov.uk', groups=None, query_params=None):
+                 email='test@gov.scot', groups=None, query_params=None):
     """Build an API Gateway event and invoke the handler, returning parsed response."""
     event = make_apigw_event(path, method, body, email, groups)
     if query_params:

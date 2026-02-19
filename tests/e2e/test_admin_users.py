@@ -10,7 +10,7 @@ import pytest
 
 from tests.e2e.conftest import seed_user, call_handler
 
-ADMIN_EMAIL = 'admin@scotgov.uk'
+ADMIN_EMAIL = 'admin@gov.scot'
 
 
 class TestAdminUserLifecycleE2E:
@@ -24,7 +24,7 @@ class TestAdminUserLifecycleE2E:
         resp = call_handler(
             e2e['handler'], '/admin/users', 'POST',
             body={
-                'email': 'new.user@scotgov.uk',
+                'email': 'new.user@gov.scot',
                 'name': 'New User',
                 'role': 'L1-operator',
                 'team': 'Support',
@@ -42,48 +42,48 @@ class TestAdminUserLifecycleE2E:
         assert resp['statusCode'] == 200
         users = resp['parsed_body']['users']
         emails = [u['email'] for u in users]
-        assert 'new.user@scotgov.uk' in emails
+        assert 'new.user@gov.scot' in emails
 
         # 3. Disable user
         resp = call_handler(
-            e2e['handler'], '/admin/users/new.user@scotgov.uk/disable', 'POST',
+            e2e['handler'], '/admin/users/new.user@gov.scot/disable', 'POST',
             email=ADMIN_EMAIL, groups=['L3-admin'],
         )
         assert resp['statusCode'] == 200
 
         # Verify user is disabled in DynamoDB
-        user_item = e2e['users_table'].get_item(Key={'email': 'new.user@scotgov.uk'})['Item']
+        user_item = e2e['users_table'].get_item(Key={'email': 'new.user@gov.scot'})['Item']
         assert user_item['active'] is False
 
         # 4. Enable user
         resp = call_handler(
-            e2e['handler'], '/admin/users/new.user@scotgov.uk/enable', 'POST',
+            e2e['handler'], '/admin/users/new.user@gov.scot/enable', 'POST',
             email=ADMIN_EMAIL, groups=['L3-admin'],
         )
         assert resp['statusCode'] == 200
 
-        user_item = e2e['users_table'].get_item(Key={'email': 'new.user@scotgov.uk'})['Item']
+        user_item = e2e['users_table'].get_item(Key={'email': 'new.user@gov.scot'})['Item']
         assert user_item['active'] is True
 
         # 5. Change role
         resp = call_handler(
-            e2e['handler'], '/admin/users/new.user@scotgov.uk/role', 'POST',
+            e2e['handler'], '/admin/users/new.user@gov.scot/role', 'POST',
             body={'role': 'L2-engineer'},
             email=ADMIN_EMAIL, groups=['L3-admin'],
         )
         assert resp['statusCode'] == 200
 
-        user_item = e2e['users_table'].get_item(Key={'email': 'new.user@scotgov.uk'})['Item']
+        user_item = e2e['users_table'].get_item(Key={'email': 'new.user@gov.scot'})['Item']
         assert user_item['role'] == 'L2-engineer'
 
     def test_create_duplicate_user_returns_409(self, e2e):
         seed_user(e2e['users_table'], ADMIN_EMAIL, 'Admin', 'L3-admin')
-        seed_user(e2e['users_table'], 'existing@scotgov.uk', 'Existing', 'L1-operator')
+        seed_user(e2e['users_table'], 'existing@gov.scot', 'Existing', 'L1-operator')
 
         resp = call_handler(
             e2e['handler'], '/admin/users', 'POST',
             body={
-                'email': 'existing@scotgov.uk',
+                'email': 'existing@gov.scot',
                 'name': 'Duplicate',
                 'role': 'L1-operator',
                 'team': 'Support',
@@ -119,7 +119,7 @@ class TestAdminUserLifecycleE2E:
         resp = call_handler(
             e2e['handler'], '/admin/users', 'POST',
             body={
-                'email': 'test@scotgov.uk',
+                'email': 'test@gov.scot',
                 'name': 'Test',
                 'role': 'invalid-role',
                 'team': 'Support',
@@ -148,7 +148,7 @@ class TestAdminUserLifecycleE2E:
         seed_user(e2e['users_table'], ADMIN_EMAIL, 'Admin', 'L3-admin')
 
         resp = call_handler(
-            e2e['handler'], '/admin/users/nobody@scotgov.uk/disable', 'POST',
+            e2e['handler'], '/admin/users/nobody@gov.scot/disable', 'POST',
             email=ADMIN_EMAIL, groups=['L3-admin'],
         )
         assert resp['statusCode'] == 404
@@ -161,7 +161,7 @@ class TestAdminUserLifecycleE2E:
         call_handler(
             e2e['handler'], '/admin/users', 'POST',
             body={
-                'email': 'audited@scotgov.uk',
+                'email': 'audited@gov.scot',
                 'name': 'Audited User',
                 'role': 'L1-operator',
                 'team': 'Support',
@@ -171,19 +171,19 @@ class TestAdminUserLifecycleE2E:
 
         # Disable
         call_handler(
-            e2e['handler'], '/admin/users/audited@scotgov.uk/disable', 'POST',
+            e2e['handler'], '/admin/users/audited@gov.scot/disable', 'POST',
             email=ADMIN_EMAIL, groups=['L3-admin'],
         )
 
         # Enable
         call_handler(
-            e2e['handler'], '/admin/users/audited@scotgov.uk/enable', 'POST',
+            e2e['handler'], '/admin/users/audited@gov.scot/enable', 'POST',
             email=ADMIN_EMAIL, groups=['L3-admin'],
         )
 
         # Change role
         call_handler(
-            e2e['handler'], '/admin/users/audited@scotgov.uk/role', 'POST',
+            e2e['handler'], '/admin/users/audited@gov.scot/role', 'POST',
             body={'role': 'L2-engineer'},
             email=ADMIN_EMAIL, groups=['L3-admin'],
         )

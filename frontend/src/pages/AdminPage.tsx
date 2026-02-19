@@ -226,7 +226,7 @@ function AdminPageContent() {
                   id="new-user-email"
                   type="email"
                   className="cb_input"
-                  placeholder="e.g. jane.macdonald@scotgov.uk"
+                  placeholder="e.g. jane.macdonald@gov.scot"
                   value={newUser.email}
                   onChange={e => setNewUser(u => ({ ...u, email: e.target.value }))}
                 />

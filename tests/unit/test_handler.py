@@ -298,14 +298,14 @@ class TestAdminRoutes:
 
     def test_disable_user_works(self):
         mock_users.get_user.return_value = {
-            'email': 'target@scotgov.uk', 'name': 'Target', 'role': 'L1-operator',
+            'email': 'target@gov.scot', 'name': 'Target', 'role': 'L1-operator',
             'active': True,
         }
-        mock_users.update_user.return_value = {'email': 'target@scotgov.uk', 'active': False}
+        mock_users.update_user.return_value = {'email': 'target@gov.scot', 'active': False}
 
         event = make_apigw_event(
-            '/admin/users/target%40scotgov.uk/disable', 'POST',
-            email='admin@scotgov.uk', groups=['L3-admin'],
+            '/admin/users/target%40gov.scot/disable', 'POST',
+            email='admin@gov.scot', groups=['L3-admin'],
         )
         response = lambda_handler(event, None)
         assert response['statusCode'] == 200
@@ -314,8 +314,8 @@ class TestAdminRoutes:
 
     def test_disable_self_rejected(self):
         event = make_apigw_event(
-            '/admin/users/admin%40scotgov.uk/disable', 'POST',
-            email='admin@scotgov.uk', groups=['L3-admin'],
+            '/admin/users/admin%40gov.scot/disable', 'POST',
+            email='admin@gov.scot', groups=['L3-admin'],
         )
         response = lambda_handler(event, None)
         assert response['statusCode'] == 400
@@ -323,14 +323,14 @@ class TestAdminRoutes:
 
     def test_enable_user_works(self):
         mock_users.get_user.return_value = {
-            'email': 'target@scotgov.uk', 'name': 'Target', 'role': 'L1-operator',
+            'email': 'target@gov.scot', 'name': 'Target', 'role': 'L1-operator',
             'active': False,
         }
-        mock_users.update_user.return_value = {'email': 'target@scotgov.uk', 'active': True}
+        mock_users.update_user.return_value = {'email': 'target@gov.scot', 'active': True}
 
         event = make_apigw_event(
-            '/admin/users/target%40scotgov.uk/enable', 'POST',
-            email='admin@scotgov.uk', groups=['L3-admin'],
+            '/admin/users/target%40gov.scot/enable', 'POST',
+            email='admin@gov.scot', groups=['L3-admin'],
         )
         response = lambda_handler(event, None)
         assert response['statusCode'] == 200
@@ -338,9 +338,9 @@ class TestAdminRoutes:
 
     def test_set_role_validates_input(self):
         event = make_apigw_event(
-            '/admin/users/target%40scotgov.uk/role', 'POST',
+            '/admin/users/target%40gov.scot/role', 'POST',
             body={'role': 'INVALID-ROLE'},
-            email='admin@scotgov.uk', groups=['L3-admin'],
+            email='admin@gov.scot', groups=['L3-admin'],
         )
         response = lambda_handler(event, None)
         assert response['statusCode'] == 400
@@ -348,15 +348,15 @@ class TestAdminRoutes:
 
     def test_set_role_works(self):
         mock_users.get_user.return_value = {
-            'email': 'target@scotgov.uk', 'name': 'Target', 'role': 'L1-operator',
+            'email': 'target@gov.scot', 'name': 'Target', 'role': 'L1-operator',
             'active': True,
         }
-        mock_users.update_user.return_value = {'email': 'target@scotgov.uk', 'role': 'L2-engineer'}
+        mock_users.update_user.return_value = {'email': 'target@gov.scot', 'role': 'L2-engineer'}
 
         event = make_apigw_event(
-            '/admin/users/target%40scotgov.uk/role', 'POST',
+            '/admin/users/target%40gov.scot/role', 'POST',
             body={'role': 'L2-engineer'},
-            email='admin@scotgov.uk', groups=['L3-admin'],
+            email='admin@gov.scot', groups=['L3-admin'],
         )
         response = lambda_handler(event, None)
         assert response['statusCode'] == 200
@@ -365,9 +365,9 @@ class TestAdminRoutes:
     def test_set_role_blocks_self_change(self):
         """Admins cannot change their own role."""
         event = make_apigw_event(
-            '/admin/users/admin%40scotgov.uk/role', 'POST',
+            '/admin/users/admin%40gov.scot/role', 'POST',
             body={'role': 'L1-operator'},
-            email='admin@scotgov.uk', groups=['L3-admin'],
+            email='admin@gov.scot', groups=['L3-admin'],
         )
         response = lambda_handler(event, None)
         assert response['statusCode'] == 400
@@ -383,7 +383,7 @@ class TestAdminRoutes:
 
         event = make_apigw_event(
             '/admin/users/user%40example.com/disable', 'POST',
-            email='admin@scotgov.uk', groups=['L3-admin'],
+            email='admin@gov.scot', groups=['L3-admin'],
         )
         response = lambda_handler(event, None)
         assert response['statusCode'] == 200
@@ -393,8 +393,8 @@ class TestAdminRoutes:
     def test_user_not_found(self):
         mock_users.get_user.return_value = None
         event = make_apigw_event(
-            '/admin/users/ghost%40scotgov.uk/disable', 'POST',
-            email='admin@scotgov.uk', groups=['L3-admin'],
+            '/admin/users/ghost%40gov.scot/disable', 'POST',
+            email='admin@gov.scot', groups=['L3-admin'],
         )
         response = lambda_handler(event, None)
         assert response['statusCode'] == 404
@@ -415,30 +415,30 @@ class TestAdminCreateUser:
         mock_users.get_user_role.return_value = None
         mock_users.get_user.return_value = None  # user does not exist yet
         mock_users.create_user.return_value = {
-            'email': 'new@scotgov.uk', 'name': 'New User',
+            'email': 'new@gov.scot', 'name': 'New User',
             'role': 'L1-operator', 'team': 'Ops', 'active': True,
         }
 
     def test_create_user_requires_l3(self):
         for role in ['L1-operator', 'L2-engineer']:
             event = make_apigw_event('/admin/users', 'POST',
-                body={'email': 'new@scotgov.uk', 'name': 'New', 'role': 'L1-operator', 'team': 'Ops'},
+                body={'email': 'new@gov.scot', 'name': 'New', 'role': 'L1-operator', 'team': 'Ops'},
                 groups=[role])
             response = lambda_handler(event, None)
             assert response['statusCode'] == 403, f'{role} should be denied'
 
     def test_create_user_missing_fields(self):
         event = make_apigw_event('/admin/users', 'POST',
-            body={'email': 'new@scotgov.uk'},
-            email='admin@scotgov.uk', groups=['L3-admin'])
+            body={'email': 'new@gov.scot'},
+            email='admin@gov.scot', groups=['L3-admin'])
         response = lambda_handler(event, None)
         assert response['statusCode'] == 400
         assert 'required' in json.loads(response['body'])['message']
 
     def test_create_user_invalid_role(self):
         event = make_apigw_event('/admin/users', 'POST',
-            body={'email': 'new@scotgov.uk', 'name': 'New', 'role': 'INVALID', 'team': 'Ops'},
-            email='admin@scotgov.uk', groups=['L3-admin'])
+            body={'email': 'new@gov.scot', 'name': 'New', 'role': 'INVALID', 'team': 'Ops'},
+            email='admin@gov.scot', groups=['L3-admin'])
         response = lambda_handler(event, None)
         assert response['statusCode'] == 400
         assert 'Invalid role' in json.loads(response['body'])['message']
@@ -446,16 +446,16 @@ class TestAdminCreateUser:
     def test_create_user_invalid_email(self):
         event = make_apigw_event('/admin/users', 'POST',
             body={'email': 'notanemail', 'name': 'New', 'role': 'L1-operator', 'team': 'Ops'},
-            email='admin@scotgov.uk', groups=['L3-admin'])
+            email='admin@gov.scot', groups=['L3-admin'])
         response = lambda_handler(event, None)
         assert response['statusCode'] == 400
         assert 'email' in json.loads(response['body'])['message'].lower()
 
     def test_create_user_already_exists(self):
-        mock_users.get_user.return_value = {'email': 'exists@scotgov.uk', 'active': True}
+        mock_users.get_user.return_value = {'email': 'exists@gov.scot', 'active': True}
         event = make_apigw_event('/admin/users', 'POST',
-            body={'email': 'exists@scotgov.uk', 'name': 'Exists', 'role': 'L1-operator', 'team': 'Ops'},
-            email='admin@scotgov.uk', groups=['L3-admin'])
+            body={'email': 'exists@gov.scot', 'name': 'Exists', 'role': 'L1-operator', 'team': 'Ops'},
+            email='admin@gov.scot', groups=['L3-admin'])
         response = lambda_handler(event, None)
         assert response['statusCode'] == 409
         assert 'already exists' in json.loads(response['body'])['message']
@@ -467,8 +467,8 @@ class TestAdminCreateUser:
         mock_boto3.client.return_value = mock_cognito
 
         event = make_apigw_event('/admin/users', 'POST',
-            body={'email': 'new@scotgov.uk', 'name': 'New User', 'role': 'L1-operator', 'team': 'Ops'},
-            email='admin@scotgov.uk', groups=['L3-admin'])
+            body={'email': 'new@gov.scot', 'name': 'New User', 'role': 'L1-operator', 'team': 'Ops'},
+            email='admin@gov.scot', groups=['L3-admin'])
 
         with patch.dict('os.environ', {'USER_POOL_ID': 'pool-123'}):
             response = lambda_handler(event, None)
@@ -489,8 +489,8 @@ class TestAdminCreateUser:
         mock_boto3.client.return_value = mock_cognito
 
         event = make_apigw_event('/admin/users', 'POST',
-            body={'email': 'new@scotgov.uk', 'name': 'New', 'role': 'L1-operator', 'team': 'Ops'},
-            email='admin@scotgov.uk', groups=['L3-admin'])
+            body={'email': 'new@gov.scot', 'name': 'New', 'role': 'L1-operator', 'team': 'Ops'},
+            email='admin@gov.scot', groups=['L3-admin'])
 
         with patch.dict('os.environ', {'USER_POOL_ID': 'pool-123'}):
             response = lambda_handler(event, None)
@@ -506,8 +506,8 @@ class TestAdminCreateUser:
         mock_users.create_user.side_effect = Exception('DynamoDB error')
 
         event = make_apigw_event('/admin/users', 'POST',
-            body={'email': 'new@scotgov.uk', 'name': 'New', 'role': 'L1-operator', 'team': 'Ops'},
-            email='admin@scotgov.uk', groups=['L3-admin'])
+            body={'email': 'new@gov.scot', 'name': 'New', 'role': 'L1-operator', 'team': 'Ops'},
+            email='admin@gov.scot', groups=['L3-admin'])
 
         with patch.dict('os.environ', {'USER_POOL_ID': 'pool-123'}):
             response = lambda_handler(event, None)
@@ -591,26 +591,26 @@ class TestActivityRoutes:
         spy = MagicMock(return_value={'events': [], 'cursor': None})
         with patch('actions.handler.query_user_activity', spy):
             event = make_apigw_event('/activity', 'GET',
-                email='alice@scotgov.uk', groups=['L1-operator'])
-            event['queryStringParameters'] = {'user': 'bob@scotgov.uk'}
+                email='alice@gov.scot', groups=['L1-operator'])
+            event['queryStringParameters'] = {'user': 'bob@gov.scot'}
             response = lambda_handler(event, None)
             assert response['statusCode'] == 200
             # Non-admin should query self, not the requested user
-            assert spy.call_args[1]['user'] == 'alice@scotgov.uk'
+            assert spy.call_args[1]['user'] == 'alice@gov.scot'
 
     def test_get_activity_admin_can_query_any_user(self):
         spy = MagicMock(return_value={'events': [], 'cursor': None})
         with patch('actions.handler.query_user_activity', spy):
             event = make_apigw_event('/activity', 'GET',
-                email='admin@scotgov.uk', groups=['L3-admin'])
-            event['queryStringParameters'] = {'user': 'bob@scotgov.uk'}
+                email='admin@gov.scot', groups=['L3-admin'])
+            event['queryStringParameters'] = {'user': 'bob@gov.scot'}
             response = lambda_handler(event, None)
             assert response['statusCode'] == 200
-            assert spy.call_args[1]['user'] == 'bob@scotgov.uk'
+            assert spy.call_args[1]['user'] == 'bob@gov.scot'
 
     def test_get_active_users_admin_only(self):
         event = make_apigw_event('/activity', 'GET',
-            email='admin@scotgov.uk', groups=['L3-admin'])
+            email='admin@gov.scot', groups=['L3-admin'])
         event['queryStringParameters'] = {'active': 'true'}
         response = lambda_handler(event, None)
         assert response['statusCode'] == 200
@@ -619,14 +619,14 @@ class TestActivityRoutes:
 
     def test_get_activity_by_event_type_admin(self):
         event = make_apigw_event('/activity', 'GET',
-            email='admin@scotgov.uk', groups=['L3-admin'])
+            email='admin@gov.scot', groups=['L3-admin'])
         event['queryStringParameters'] = {'event_type': 'page_view'}
         response = lambda_handler(event, None)
         assert response['statusCode'] == 200
 
     def test_get_activity_by_event_type_non_admin_denied(self):
         event = make_apigw_event('/activity', 'GET',
-            email='alice@scotgov.uk', groups=['L1-operator'])
+            email='alice@gov.scot', groups=['L1-operator'])
         event['queryStringParameters'] = {'event_type': 'page_view'}
         response = lambda_handler(event, None)
         # Non-admin with event_type but no user should still query self
