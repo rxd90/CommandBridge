@@ -27,6 +27,13 @@ resource "aws_dynamodb_table" "audit" {
     type = "S"
   }
 
+  # "2026-02" bucket written to every record; used for time-ordered listing
+  # without a full-table scan. list_recent queries the current and previous month.
+  attribute {
+    name = "year_month"
+    type = "S"
+  }
+
   # Query by user: "show my actions"
   global_secondary_index {
     name            = "user-index"
@@ -39,6 +46,14 @@ resource "aws_dynamodb_table" "audit" {
   global_secondary_index {
     name            = "action-index"
     hash_key        = "action"
+    range_key       = "timestamp"
+    projection_type = "ALL"
+  }
+
+  # Time-ordered listing without table scan; partition by calendar month
+  global_secondary_index {
+    name            = "time-index"
+    hash_key        = "year_month"
     range_key       = "timestamp"
     projection_type = "ALL"
   }

@@ -56,6 +56,10 @@ def lambda_handler(event, context):
         return _handle_execute(event, user_email, user_groups)
     elif path == '/actions/request' and method == 'POST':
         return _handle_request(event, user_email, user_groups)
+    elif path == '/actions/approve' and method == 'POST':
+        return _handle_approve_request(event, user_email, user_groups)
+    elif path == '/actions/pending' and method == 'GET':
+        return _handle_pending_approvals(user_email, user_groups)
     elif path == '/actions/audit' and method == 'GET':
         return _handle_audit(event, user_email, user_groups)
 
@@ -135,10 +139,12 @@ def _handle_execute(event, user_email, user_groups):
         return _response(403, {'message': perm.get('reason', 'Not permitted')})
 
     if perm.get('needs_approval'):
-        log_action(user_email, action_id, '', ticket, 'requested')
+        record = log_action(user_email, action_id, body.get('target', ''), ticket, 'requested',
+                            details={'reason': reason, 'request_body': body})
         return _response(202, {
             'message': f'Action {action_id} requires approval. Request submitted.',
-            'status': 'pending_approval'
+            'status': 'pending_approval',
+            'request_id': record['id'],
         })
 
     # Execute the action
@@ -177,17 +183,25 @@ def _handle_request(event, user_email, user_groups):
     if not perm['allowed']:
         return _response(403, {'message': perm.get('reason', 'Not permitted')})
 
-    log_action(user_email, action_id, body.get('target', ''), ticket, 'requested',
-               details={'reason': reason})
+    record = log_action(user_email, action_id, body.get('target', ''), ticket, 'requested',
+                        details={'reason': reason, 'request_body': body})
 
     return _response(202, {
         'message': f'Approval request submitted for {action_id}. An L2/L3 operator will review.',
-        'status': 'pending_approval'
+        'status': 'pending_approval',
+        'request_id': record['id'],
     })
 
 
 def _handle_audit(event, user_email, user_groups):
-    """GET /actions/audit - return recent audit entries from DynamoDB."""
+    """GET /actions/audit - return audit entries from DynamoDB.
+
+    Access rules:
+    - Any authenticated user may query their own history (?user=<own email>).
+    - L2+ may query by action type and list recent entries (no filter).
+    - L3 only may query another user's history (?user=<other email>).
+    L1 users who supply no filter are served their own history automatically.
+    """
     from shared.audit import query_by_user, query_by_action, list_recent
 
     params = event.get('queryStringParameters') or {}
@@ -198,6 +212,20 @@ def _handle_audit(event, user_email, user_groups):
     cursor = params.get('cursor')
     user_filter = params.get('user')
     action_filter = params.get('action')
+
+    # Cross-user query: L3 only
+    if user_filter and user_filter != user_email:
+        if not _is_admin(user_groups):
+            return _response(403, {'message': "L3 admin access required to view another user's audit history"})
+
+    # Action-type query: L2+
+    if action_filter and not _has_write_access(user_groups):
+        return _response(403, {'message': 'L2+ access required to query by action type'})
+
+    # No filter: L2+ see recent; L1 are scoped to their own history
+    if not user_filter and not action_filter:
+        if not _has_write_access(user_groups):
+            user_filter = user_email
 
     if user_filter:
         result = query_by_user(user_filter, limit, cursor)
@@ -493,7 +521,8 @@ def _handle_admin_create_user(event, user_email, user_groups):
                 {'Name': 'name', 'Value': name},
             ],
             TemporaryPassword=temp_password,
-            MessageAction='SUPPRESS',
+            # Send the welcome email so Cognito delivers the temporary password
+            # directly to the user.  Do NOT return temp_password in the API response.
         )
         cognito.admin_add_user_to_group(
             UserPoolId=user_pool_id,
@@ -520,9 +549,82 @@ def _handle_admin_create_user(event, user_email, user_groups):
                details={'name': name, 'role': role, 'team': team})
 
     return _response(201, {
-        'message': f'User {email} created successfully',
-        'temporary_password': temp_password,
+        'message': f'User {email} created. A temporary password has been sent to their email address.',
     })
+
+
+def _handle_pending_approvals(user_email, user_groups):
+    """GET /actions/pending - list pending approval requests (L2+ only)."""
+    if not _has_write_access(user_groups):
+        return _response(403, {'message': 'L2+ access required to view pending approvals'})
+
+    from shared.audit import get_pending_approvals
+    pending = get_pending_approvals()
+
+    # Strip the stored request_body from list view — approvers fetch the full
+    # record via the approve endpoint; no need to expose it in the list.
+    sanitized = []
+    for item in pending:
+        entry = {k: v for k, v in item.items() if k != 'details'}
+        details_public = {k: v for k, v in item.get('details', {}).items() if k != 'request_body'}
+        if details_public:
+            entry['details'] = details_public
+        sanitized.append(entry)
+
+    return _response(200, {'pending': sanitized})
+
+
+def _handle_approve_request(event, user_email, user_groups):
+    """POST /actions/approve - L2+ approves and executes a pending request."""
+    if not _has_write_access(user_groups):
+        return _response(403, {'message': 'L2+ access required to approve requests'})
+
+    body = _parse_body(event)
+    if not body or not body.get('request_id'):
+        return _response(400, {'message': 'request_id is required'})
+
+    from shared.audit import get_audit_record_by_id, update_audit_result
+
+    record = get_audit_record_by_id(body['request_id'])
+    if not record:
+        return _response(404, {'message': 'Request not found'})
+
+    if record['result'] != 'requested':
+        return _response(409, {'message': f"Request is already '{record['result']}'"})
+
+    # Prevent self-approval
+    if record['user'].lower() == user_email.lower():
+        return _response(403, {'message': 'Cannot approve your own request'})
+
+    # Verify the approver's role covers this action
+    perm = check_permission(user_groups, record['action'], 'approve')
+    if not perm['allowed']:
+        return _response(403, {'message': f"Your role cannot approve '{record['action']}'"})
+
+    # Retrieve the original request body stored at submission time
+    request_body = record.get('details', {}).get('request_body')
+    if not request_body:
+        return _response(400, {'message': 'No request body stored for this record; cannot replay'})
+
+    action_id = record['action']
+    ticket = record['ticket']
+
+    try:
+        executor = _get_executor(action_id)
+        result = executor(request_body)
+        update_audit_result(record['id'], record['timestamp'], 'approved', user_email)
+        log_action(user_email, action_id, request_body.get('target', ''), ticket, 'success',
+                   approved_by=user_email,
+                   details={'approved_request_id': record['id']})
+        return _response(200, {
+            'message': f'Action {action_id} approved and executed.',
+            'result': result,
+        })
+    except Exception as e:
+        update_audit_result(record['id'], record['timestamp'], 'approval_failed', user_email)
+        log_action(user_email, action_id, request_body.get('target', ''), ticket, 'failed',
+                   details={'error': str(e), 'approved_request_id': record['id']})
+        return _response(500, {'message': 'Action failed after approval. Check audit log for details.'})
 
 
 def _generate_temp_password(length=16):

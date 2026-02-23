@@ -64,7 +64,12 @@ resource "aws_cloudfront_function" "security_headers" {
       headers['x-content-type-options']    = { value: 'nosniff' };
       headers['x-frame-options']           = { value: 'DENY' };
       headers['referrer-policy']           = { value: 'strict-origin-when-cross-origin' };
-      headers['content-security-policy']   = { value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.amazonaws.com https://*.amazoncognito.com; frame-ancestors 'none';" };
+      // style-src: 'unsafe-inline' removed — the production Vite/SCSS build emits
+      // external stylesheets only.  If a future dependency requires an inline style,
+      // add its hash (e.g. 'sha256-...') here rather than re-enabling 'unsafe-inline'.
+      headers['content-security-policy']   = { value: "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.amazonaws.com https://*.amazoncognito.com; frame-ancestors 'none';" };
+      // Deny access to browser APIs that this portal does not require
+      headers['permissions-policy']        = { value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()' };
       return response;
     }
   EOF

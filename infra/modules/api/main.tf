@@ -75,6 +75,22 @@ resource "aws_apigatewayv2_route" "get_audit" {
   authorization_type = "JWT"
 }
 
+resource "aws_apigatewayv2_route" "get_pending" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "GET /actions/pending"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+
+resource "aws_apigatewayv2_route" "post_approve" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "POST /actions/approve"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+
 # KB Routes
 resource "aws_apigatewayv2_route" "kb_list" {
   api_id             = aws_apigatewayv2_api.main.id

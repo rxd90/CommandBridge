@@ -46,9 +46,9 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
 
 # Scoped permissions for operational actions
 data "aws_iam_policy_document" "actions" {
-  # DynamoDB audit table
+  # DynamoDB audit table — UpdateItem needed for approval workflow status transitions
   statement {
-    actions   = ["dynamodb:PutItem", "dynamodb:Query", "dynamodb:Scan"]
+    actions   = ["dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:Query", "dynamodb:Scan"]
     resources = [var.audit_table_arn, "${var.audit_table_arn}/index/*"]
   }
 

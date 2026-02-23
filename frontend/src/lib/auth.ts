@@ -9,7 +9,9 @@ const SESSION_KEY = 'cb_session';
 interface Session {
   access_token?: string;
   id_token?: string;
-  refresh_token?: string;
+  // refresh_token is intentionally absent — it must not be stored in
+  // sessionStorage.  Amplify manages refresh tokens internally via its
+  // own secure storage; only short-lived (1 h) access/id tokens live here.
   expires_at?: number;
   // Local dev fields
   email?: string;
