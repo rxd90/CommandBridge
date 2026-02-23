@@ -164,7 +164,7 @@ The only permitted direct AWS CLI operations are read-only queries for debugging
 
 Users are managed through the Admin panel (`/admin`) by L3 admins: enable/disable accounts, change roles. Users are also stored in the DynamoDB users table and can be seeded from `rbac/users.json`:
 
-#### Cognito — 7 users, all CONFIRMED, all enabled
+#### Cognito — 8 users, all CONFIRMED, all enabled
 
 | Email | Role Group | Password |
 |-------|-----------|----------|
@@ -175,6 +175,7 @@ Users are managed through the Admin panel (`/admin`) by L3 admins: enable/disabl
 | `stuart.mcwilliams@gov.scot` | L3-admin | `Command@Bridge2026` |
 | `laurie.brown@gov.scot` | L2-engineer | `Command@Bridge2026` |
 | `james.callaghan@gov.scot` | L1-operator | `Command@Bridge2026` |
+| `angelo.tata@gov.scot` | L3-admin | `Command@Bridge2026` |
 
 #### Seeding and syncing
 
