@@ -60,7 +60,9 @@ def rbac_users_raw():
 def make_apigw_event(path, method='GET', body=None, email='test@gov.scot', groups=None):
     """Build a minimal API Gateway HTTP API v2 event.
 
-    Matches the shape read by lambdas/actions/handler.py lines 21-27.
+    Matches the shape read by lambdas/actions/handler.py.
+    The groups parameter is accepted for backward compatibility but is no
+    longer placed into JWT claims — role resolution is DynamoDB-only.
     """
     event = {
         'rawPath': path,
@@ -70,7 +72,6 @@ def make_apigw_event(path, method='GET', body=None, email='test@gov.scot', group
                 'jwt': {
                     'claims': {
                         'email': email,
-                        'cognito:groups': groups or [],
                     }
                 }
             },

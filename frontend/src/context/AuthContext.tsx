@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { User } from '../types';
 import * as auth from '../lib/auth';
+import { fetchMe } from '../lib/api';
 import { initActivityTracker, stopActivityTracker, trackEvent } from '../lib/activity';
 
 interface AuthContextValue {
@@ -26,20 +27,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const currentUser = auth.getCurrentUser();
-    setUser(currentUser);
-    setLoading(false);
+    async function init() {
+      const currentUser = auth.getCurrentUser();
+      if (!currentUser) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
 
-    if (currentUser) {
+      try {
+        const me = await fetchMe();
+        setUser({
+          email: currentUser.email,
+          name: me.name || currentUser.name,
+          role: me.role,
+        });
+      } catch {
+        // If /me fails, set user with empty role (denied by RBAC checks)
+        setUser({
+          email: currentUser.email,
+          name: currentUser.name,
+          role: '',
+        });
+      }
+
+      setLoading(false);
       initActivityTracker();
     }
 
+    init();
     return () => stopActivityTracker();
   }, []);
 
-  const refreshUser = () => {
-    setUser(auth.getCurrentUser());
-  };
+  const refreshUser = useCallback(async () => {
+    const currentUser = auth.getCurrentUser();
+    if (!currentUser) {
+      setUser(null);
+      return;
+    }
+    try {
+      const me = await fetchMe();
+      setUser({
+        email: currentUser.email,
+        name: me.name || currentUser.name,
+        role: me.role,
+      });
+    } catch {
+      setUser({
+        email: currentUser.email,
+        name: currentUser.name,
+        role: '',
+      });
+    }
+  }, []);
 
   const handleLogout = useCallback(() => {
     trackEvent('logout');

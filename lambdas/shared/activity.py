@@ -57,11 +57,21 @@ def log_activity_batch(events: list) -> int:
     now_seconds = int(time.time())
     ttl_value = now_seconds + (TTL_DAYS * 86400)
 
+    # Deduplicate keys: if multiple events share the same user+timestamp,
+    # offset subsequent ones by 1ms to avoid BatchWriteItem duplicate key errors.
+    seen_keys = set()
     with _table.batch_writer() as batch:
         for event in events:
+            ts = event['timestamp']
+            key = (event['user'], ts)
+            while key in seen_keys:
+                ts += 1
+                key = (event['user'], ts)
+            seen_keys.add(key)
+
             item = {
                 'user': event['user'],
-                'timestamp': event['timestamp'],
+                'timestamp': ts,
                 'event_type': event['event_type'],
                 'ttl': ttl_value,
             }

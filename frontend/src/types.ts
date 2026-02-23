@@ -1,7 +1,7 @@
 export interface User {
   email: string;
   name: string;
-  groups: string[];
+  role: string;
 }
 
 export interface LocalDevUser {

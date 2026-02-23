@@ -146,9 +146,7 @@ def create_article(title, service, owner, tags, content, user_email, category=''
         'version': 1,
         'title': title,
         'slug': article_id,
-        'service': service,
         'owner': owner,
-        'category': category or '',
         'tags': tags or [],
         'last_reviewed': now[:10],
         'content': content,
@@ -158,10 +156,15 @@ def create_article(title, service, owner, tags, content, user_email, category=''
         'updated_by': user_email,
         'is_latest': 'true',
         'title_lower': title.lower(),
-        'service_lower': service.lower(),
         'owner_lower': owner.lower(),
         'tags_lower': ','.join(t.lower() for t in (tags or [])),
     }
+    # DynamoDB GSI keys cannot be empty strings — only include when non-empty
+    if service:
+        item['service'] = service
+        item['service_lower'] = service.lower()
+    if category:
+        item['category'] = category
 
     # Check if article with this ID already exists
     existing = get_article(article_id)
@@ -189,18 +192,17 @@ def update_article(article_id, title, service, owner, tags, content, user_email,
 
     # Create new version
     final_title = title or current['title']
-    final_service = service or current['service']
-    final_owner = owner or current['owner']
+    final_service = service or current.get('service', '')
+    final_owner = owner or current.get('owner', '')
     final_category = category if category is not None else current.get('category', '')
+    final_tags = tags if tags is not None else current.get('tags', [])
     item = {
         'id': article_id,
         'version': new_version,
         'title': final_title,
         'slug': article_id,
-        'service': final_service,
         'owner': final_owner,
-        'category': final_category,
-        'tags': tags if tags is not None else current.get('tags', []),
+        'tags': final_tags,
         'last_reviewed': now[:10],
         'content': content if content is not None else current['content'],
         'created_at': current['created_at'],
@@ -209,10 +211,15 @@ def update_article(article_id, title, service, owner, tags, content, user_email,
         'updated_by': user_email,
         'is_latest': 'true',
         'title_lower': final_title.lower(),
-        'service_lower': final_service.lower(),
         'owner_lower': final_owner.lower(),
-        'tags_lower': ','.join(t.lower() for t in (tags if tags is not None else current.get('tags', []))),
+        'tags_lower': ','.join(t.lower() for t in final_tags),
     }
+    # DynamoDB GSI keys cannot be empty strings — only include when non-empty
+    if final_service:
+        item['service'] = final_service
+        item['service_lower'] = final_service.lower()
+    if final_category:
+        item['category'] = final_category
 
     _table.put_item(Item=item)
     return _article_response(item)

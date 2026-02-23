@@ -36,21 +36,13 @@ def lambda_handler(event, context):
     claims = event.get('requestContext', {}).get('authorizer', {}).get('jwt', {}).get('claims', {})
     user_email = claims.get('email') or claims.get('username') or claims.get('cognito:username', 'unknown')
 
-    # Resolve role from DynamoDB (source of truth for authorization)
+    # Resolve role from DynamoDB (sole source of truth for authorization)
     db_role = get_user_role(user_email)
-    if db_role:
-        user_groups = [db_role]
-    else:
-        # Fallback to JWT cognito:groups for graceful migration
-        user_groups = claims.get('cognito:groups', [])
-        if isinstance(user_groups, str):
-            if user_groups.startswith('[') and user_groups.endswith(']'):
-                user_groups = [g.strip().strip('"').strip("'")
-                              for g in user_groups[1:-1].split(',') if g.strip()]
-            else:
-                user_groups = [user_groups]
+    user_groups = [db_role] if db_role else []
 
-    if path == '/actions/permissions' and method == 'GET':
+    if path == '/me' and method == 'GET':
+        return _handle_me(user_email)
+    elif path == '/actions/permissions' and method == 'GET':
         return _handle_permissions(user_groups)
     elif path == '/actions/execute' and method == 'POST':
         return _handle_execute(event, user_email, user_groups)
@@ -107,6 +99,20 @@ def lambda_handler(event, context):
 
     else:
         return _response(404, {'message': 'Not found'})
+
+
+def _handle_me(user_email):
+    """GET /me - return the current user's profile from DynamoDB."""
+    user = get_user(user_email)
+    if not user or not user.get('active', True):
+        return _response(403, {'message': 'User not found or inactive'})
+    return _response(200, {
+        'email': user['email'],
+        'name': user.get('name', ''),
+        'role': user.get('role', ''),
+        'team': user.get('team', ''),
+        'active': user.get('active', True),
+    })
 
 
 def _handle_permissions(user_groups):
@@ -454,22 +460,6 @@ def _handle_admin_set_role(event, target_email, user_email, user_groups):
 
     old_role = user.get('role', 'unknown')
 
-    # Update Cognito group membership to match new role
-    user_pool_id = os.environ.get('USER_POOL_ID')
-    if user_pool_id:
-        cognito = boto3.client('cognito-idp', region_name=os.environ.get('AWS_REGION', 'eu-west-2'))
-        try:
-            if old_role in VALID_ROLES:
-                cognito.admin_remove_user_from_group(
-                    UserPoolId=user_pool_id, Username=target_email, GroupName=old_role)
-        except Exception:
-            pass  # Group may not exist or user not in group
-        try:
-            cognito.admin_add_user_to_group(
-                UserPoolId=user_pool_id, Username=target_email, GroupName=new_role)
-        except Exception as e:
-            return _response(500, {'message': f'Failed to update Cognito group: {str(e)}'})
-
     update_user(target_email, {'role': new_role}, user_email)
     log_action(user_email, 'admin-set-role', target_email, '', 'success',
                details={'old_role': old_role, 'new_role': new_role})
@@ -523,11 +513,6 @@ def _handle_admin_create_user(event, user_email, user_groups):
             TemporaryPassword=temp_password,
             # Send the welcome email so Cognito delivers the temporary password
             # directly to the user.  Do NOT return temp_password in the API response.
-        )
-        cognito.admin_add_user_to_group(
-            UserPoolId=user_pool_id,
-            Username=email,
-            GroupName=role,
         )
     except Exception as e:
         error_name = type(e).__name__

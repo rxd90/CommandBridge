@@ -42,6 +42,15 @@ resource "aws_apigatewayv2_integration" "lambda" {
   payload_format_version = "2.0"
 }
 
+# User profile route
+resource "aws_apigatewayv2_route" "get_me" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "GET /me"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+
 # Routes
 resource "aws_apigatewayv2_route" "get_permissions" {
   api_id             = aws_apigatewayv2_api.main.id

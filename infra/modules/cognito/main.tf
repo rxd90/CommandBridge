@@ -48,30 +48,8 @@ resource "aws_cognito_user_pool" "main" {
 
   tags = {
     Name    = "CommandBridge User Pool"
-    Purpose = "CommandBridge RBAC authentication"
+    Purpose = "CommandBridge authentication"
   }
-}
-
-# RBAC Groups - admin-only, appear in cognito:groups JWT claim
-resource "aws_cognito_user_group" "l1_operator" {
-  name         = "L1-operator"
-  user_pool_id = aws_cognito_user_pool.main.id
-  description  = "L1 Support - pre-approved safe operations, can request high-risk"
-  precedence   = 30
-}
-
-resource "aws_cognito_user_group" "l2_engineer" {
-  name         = "L2-engineer"
-  user_pool_id = aws_cognito_user_pool.main.id
-  description  = "L2 Engineering - full operational access, can approve L1 requests"
-  precedence   = 20
-}
-
-resource "aws_cognito_user_group" "l3_admin" {
-  name         = "L3-admin"
-  user_pool_id = aws_cognito_user_pool.main.id
-  description  = "L3 Platform - unrestricted, manages portal config"
-  precedence   = 10
 }
 
 resource "aws_cognito_user_pool_client" "portal" {
@@ -90,7 +68,8 @@ resource "aws_cognito_user_pool_client" "portal" {
 
   explicit_auth_flows = [
     "ALLOW_REFRESH_TOKEN_AUTH",
-    "ALLOW_USER_SRP_AUTH"
+    "ALLOW_USER_SRP_AUTH",
+    "ALLOW_USER_PASSWORD_AUTH"
   ]
 
   token_validity_units {

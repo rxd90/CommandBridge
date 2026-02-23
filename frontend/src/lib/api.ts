@@ -1,5 +1,5 @@
 import { config } from '../config';
-import { getAccessToken } from './auth';
+import { getAccessToken, getCurrentUser } from './auth';
 import type { ExecuteResult, KBListResponse, KBArticleResponse, KBVersionSummary, AuditListResponse, AdminUser, CreateUserResponse, ActivityListResponse, ActiveUser } from '../types';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -46,6 +46,28 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     throw new Error((data.message as string) || `Request failed (${res.status})`);
   }
   return data as T;
+}
+
+export interface MeResponse {
+  email: string;
+  name: string;
+  role: string;
+  team: string;
+  active: boolean;
+}
+
+export async function fetchMe(): Promise<MeResponse> {
+  if (config.localDev) {
+    const user = getCurrentUser();
+    return {
+      email: user?.email || '',
+      name: user?.name || '',
+      role: user?.role || '',
+      team: '',
+      active: true,
+    };
+  }
+  return request<MeResponse>('/me');
 }
 
 export async function executeAction(

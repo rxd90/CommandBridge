@@ -11,7 +11,6 @@ Outstanding items to address before production deployment.
 ## Identity & Access
 
 - **MFA optional for privileged accounts** — Cognito MFA is not enforced for L2-engineer and L3-admin roles. MFA should be required for any account with elevated privileges.
-- **RBAC fallback to Cognito JWT groups** — If the DynamoDB role lookup returns nothing, the handler falls back to the `cognito:groups` JWT claim. Direct Cognito group manipulation could bypass DynamoDB-based RBAC.
 - **No approval workflow for admin operations** — User creation, role changes, enable/disable are single-admin actions with no second-party review.
 
 ## TLS & Certificates

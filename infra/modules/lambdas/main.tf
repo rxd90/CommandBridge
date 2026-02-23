@@ -155,15 +155,13 @@ data "aws_iam_policy_document" "actions" {
     resources = ["arn:aws:s3:::${var.project_name}.site/audit-exports/*"]
   }
 
-  # Cognito (disable-user, revoke-sessions, enable-user executors + admin user creation + role changes)
+  # Cognito (disable-user, revoke-sessions, enable-user executors + admin user creation)
   statement {
     actions = [
       "cognito-idp:AdminDisableUser",
       "cognito-idp:AdminEnableUser",
       "cognito-idp:AdminUserGlobalSignOut",
       "cognito-idp:AdminCreateUser",
-      "cognito-idp:AdminAddUserToGroup",
-      "cognito-idp:AdminRemoveUserFromGroup",
       "cognito-idp:AdminDeleteUser"
     ]
     resources = [var.cognito_user_pool_arn]

@@ -15,7 +15,7 @@ CommandBridge is the internal operations portal for Scottish Government digital 
 
 ## Roles and Permissions
 
-CommandBridge uses three RBAC roles, assigned via Cognito Groups:
+CommandBridge uses three RBAC roles, managed in the DynamoDB users table:
 
 | Role | What you can do |
 |---|---|
@@ -78,7 +78,7 @@ CommandBridge authenticates directly against AWS Cognito using **SRP (Secure Rem
 
 ### Token details
 
-- **ID token** - JWT containing user email, name, and `cognito:groups` (used for RBAC)
+- **ID token** - JWT containing user email and name (roles are resolved from DynamoDB, not the JWT)
 - **Access token** - Sent as `Authorization: Bearer` header on all API requests
 - Amplify handles token refresh automatically via the Cognito refresh token
 - Tokens expire based on Cognito User Pool settings (default 1 hour)

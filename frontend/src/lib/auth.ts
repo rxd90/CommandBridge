@@ -56,7 +56,7 @@ export function getCurrentUser(): User | null {
     return {
       email: session.email || '',
       name: session.name || '',
-      groups: [session.role || ''],
+      role: session.role || '',
     };
   }
 
@@ -69,7 +69,7 @@ export function getCurrentUser(): User | null {
     return {
       email: payload.email || payload['cognito:username'] || '',
       name: payload.name || payload.email || '',
-      groups: Array.isArray(payload['cognito:groups']) ? payload['cognito:groups'] : [],
+      role: '',  // Populated from /me endpoint by AuthContext
     };
   } catch {
     return null;
@@ -80,7 +80,7 @@ export function getAccessToken(): string | null {
   const session = getSession();
   if (!session) return null;
   if (config.localDev) return 'local-dev-token';
-  // Use id_token - it contains email and cognito:groups claims.
+  // Use id_token - it contains email and name claims needed for identity.
   // The access_token only has username/sub, so the backend can't resolve the user.
   return session.id_token || session.access_token || null;
 }

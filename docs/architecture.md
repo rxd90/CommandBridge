@@ -59,9 +59,8 @@ CommandBridge is an operational command portal that provides tiered support staf
 ### 3. Role Resolution and RBAC
 
 1. The Lambda extracts the user's email from the JWT claims.
-2. It looks up the user's role from the DynamoDB users table (source of truth for authorization).
-3. If no DynamoDB role is found, it falls back to the `cognito:groups` JWT claim.
-4. The resolved role (L1-operator, L2-engineer, or L3-admin) is used for all permission checks.
+2. It looks up the user's role from the DynamoDB users table (sole source of truth for authorization).
+3. The resolved role (L1-operator, L2-engineer, or L3-admin) is used for all permission checks.
 
 ### 4. Action Execution
 
@@ -108,9 +107,9 @@ Action permissions are defined in a static `actions.json` file deployed with the
 ### Cognito
 
 - User pool with email-based login and strong password policy (12+ chars, mixed case, numbers, symbols).
-- Three groups matching the RBAC tiers: `L1-operator`, `L2-engineer`, `L3-admin`.
 - Admin-only user creation (no self-signup).
 - MFA currently optional.
+- Cognito handles authentication only; roles are managed in the DynamoDB users table.
 
 ## Operational Actions
 
@@ -140,7 +139,7 @@ All infrastructure is managed via Terraform modules in `infra/modules/`:
 
 | Module | Resources |
 |--------|-----------|
-| `cognito` | User pool, groups, app client, domain |
+| `cognito` | User pool, app client, domain |
 | `storage` | 4 DynamoDB tables with PITR enabled |
 | `lambdas` | Lambda function, IAM role and scoped policies |
 | `api` | API Gateway HTTP API, JWT authorizer, routes |

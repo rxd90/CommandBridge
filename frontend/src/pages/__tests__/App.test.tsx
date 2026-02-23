@@ -6,7 +6,7 @@ import { App } from '../../App';
 // Mock the useAuth hook to return an authenticated user so AuthGuard allows through
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({
-    user: { email: 'test@example.com', name: 'Test User', groups: ['L2-engineer'] },
+    user: { email: 'test@example.com', name: 'Test User', role: 'L2-engineer' },
     loading: false,
     login: vi.fn(),
     logout: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock('../../lib/auth', () => ({
   getCurrentUser: () => ({
     email: 'test@example.com',
     name: 'Test User',
-    groups: ['L2-engineer'],
+    role: 'L2-engineer',
   }),
   login: vi.fn(),
   logout: vi.fn(),

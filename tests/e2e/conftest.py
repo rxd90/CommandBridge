@@ -212,9 +212,6 @@ def e2e(monkeypatch):
         user_pool_id = pool_resp['UserPool']['Id']
         monkeypatch.setenv('USER_POOL_ID', user_pool_id)
 
-        for group in ['L1-operator', 'L2-engineer', 'L3-admin']:
-            cognito.create_group(GroupName=group, UserPoolId=user_pool_id)
-
         # Purge ALL shared.* and actions.* modules from sys.modules.
         # Unit tests inject mock ModuleType objects (e.g. sys.modules['shared.audit'] = mock)
         # which corrupts the 'shared' namespace package. A selective reload isn't enough —

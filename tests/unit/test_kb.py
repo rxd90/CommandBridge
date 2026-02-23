@@ -18,19 +18,43 @@ from moto import mock_aws
 # Module-level mocks - must happen before importing handler / kb
 # ---------------------------------------------------------------------------
 
-# Patch shared.audit before handler import (same pattern as test_handler.py)
-mock_audit = types.ModuleType('shared.audit')
-mock_audit.log_action = MagicMock(return_value={'id': 'test', 'timestamp': 0})
-sys.modules['shared.audit'] = mock_audit
+# Reuse shared.audit mock (may already exist from test_handler.py import order)
+if 'shared.audit' not in sys.modules:
+    mock_audit = types.ModuleType('shared.audit')
+    mock_audit.log_action = MagicMock(return_value={'id': 'test', 'timestamp': 0})
+    mock_audit.query_by_user = MagicMock(return_value={'entries': [], 'cursor': None})
+    mock_audit.query_by_action = MagicMock(return_value={'entries': [], 'cursor': None})
+    mock_audit.list_recent = MagicMock(return_value={'entries': [], 'cursor': None})
+    mock_audit.get_pending_approvals = MagicMock(return_value={'entries': [], 'cursor': None})
+    mock_audit.get_audit_record_by_id = MagicMock(return_value=None)
+    mock_audit.update_audit_result = MagicMock(return_value=None)
+    sys.modules['shared.audit'] = mock_audit
+else:
+    mock_audit = sys.modules['shared.audit']
 
-# Patch shared.users before handler import (creates DynamoDB at module level)
-mock_users = types.ModuleType('shared.users')
-mock_users.get_user_role = MagicMock(return_value=None)
-mock_users.get_user = MagicMock(return_value=None)
-mock_users.list_users = MagicMock(return_value=[])
-mock_users.update_user = MagicMock(return_value=None)
-mock_users.VALID_ROLES = {'L1-operator', 'L2-engineer', 'L3-admin'}
-sys.modules['shared.users'] = mock_users
+# Reuse shared.activity mock (may already exist from test_handler.py import order)
+if 'shared.activity' not in sys.modules:
+    mock_activity = types.ModuleType('shared.activity')
+    mock_activity.log_activity_batch = MagicMock(return_value=3)
+    mock_activity.query_user_activity = MagicMock(return_value={'events': [], 'cursor': None})
+    mock_activity.query_by_event_type = MagicMock(return_value={'events': [], 'cursor': None})
+    mock_activity.get_active_users = MagicMock(return_value=[])
+    sys.modules['shared.activity'] = mock_activity
+else:
+    mock_activity = sys.modules['shared.activity']
+
+# Reuse shared.users mock (may already exist from test_handler.py import order)
+if 'shared.users' not in sys.modules:
+    mock_users = types.ModuleType('shared.users')
+    mock_users.get_user_role = MagicMock(return_value='L1-operator')
+    mock_users.get_user = MagicMock(return_value=None)
+    mock_users.list_users = MagicMock(return_value=[])
+    mock_users.update_user = MagicMock(return_value=None)
+    mock_users.create_user = MagicMock(return_value={'email': 'new@test.com', 'name': 'New', 'role': 'L1-operator', 'team': 'Ops', 'active': True})
+    mock_users.VALID_ROLES = {'L1-operator', 'L2-engineer', 'L3-admin'}
+    sys.modules['shared.users'] = mock_users
+else:
+    mock_users = sys.modules['shared.users']
 
 # Set KB_TABLE env var before kb.py is imported (it reads at module level)
 os.environ['KB_TABLE'] = 'commandbridge-test-kb'
@@ -89,6 +113,9 @@ def _create_kb_table():
 
 class TestKBHandlerRoutes:
     """Test KB routes via lambda_handler + make_apigw_event."""
+
+    def setup_method(self):
+        mock_users.get_user_role.return_value = 'L1-operator'
 
     # ── GET /kb ──────────────────────────────────────────────────
 
@@ -210,7 +237,8 @@ class TestKBHandlerRoutes:
 
     @mock_aws
     def test_post_kb_l2_creates_article_201(self):
-        """POST /kb with L2 group creates article and returns 201."""
+        """POST /kb with L2 role creates article and returns 201."""
+        mock_users.get_user_role.return_value = 'L2-engineer'
         _create_kb_table()
         from shared import kb as _kb
         _kb._table = boto3.resource('dynamodb', region_name='us-east-1').Table(os.environ['KB_TABLE'])
@@ -244,6 +272,7 @@ class TestKBHandlerRoutes:
     @mock_aws
     def test_post_kb_missing_title_returns_400(self):
         """POST /kb without title returns 400."""
+        mock_users.get_user_role.return_value = 'L2-engineer'
         _create_kb_table()
         from shared import kb as _kb
         _kb._table = boto3.resource('dynamodb', region_name='us-east-1').Table(os.environ['KB_TABLE'])
@@ -261,7 +290,8 @@ class TestKBHandlerRoutes:
 
     @mock_aws
     def test_put_kb_l2_updates_article_200(self):
-        """PUT /kb/{id} with L2 group updates article and returns 200."""
+        """PUT /kb/{id} with L2 role updates article and returns 200."""
+        mock_users.get_user_role.return_value = 'L2-engineer'
         _create_kb_table()
         from shared import kb as _kb
         _kb._table = boto3.resource('dynamodb', region_name='us-east-1').Table(os.environ['KB_TABLE'])
@@ -300,7 +330,8 @@ class TestKBHandlerRoutes:
 
     @mock_aws
     def test_delete_kb_l3_deletes_200(self):
-        """DELETE /kb/{id} with L3 group deletes and returns 200."""
+        """DELETE /kb/{id} with L3 role deletes and returns 200."""
+        mock_users.get_user_role.return_value = 'L3-admin'
         _create_kb_table()
         from shared import kb as _kb
         _kb._table = boto3.resource('dynamodb', region_name='us-east-1').Table(os.environ['KB_TABLE'])

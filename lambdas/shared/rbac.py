@@ -1,7 +1,7 @@
 """Server-side RBAC enforcement for CommandBridge actions.
 
 Reads rbac/actions.json (bundled with Lambda deployment) and validates
-user role from Cognito JWT cognito:groups claim against action permissions.
+user role from DynamoDB users table against action permissions.
 """
 
 import json
@@ -16,7 +16,7 @@ def check_permission(user_groups: list, action_id: str, operation: str = 'run') 
     """Check if any of the user's groups permit the requested operation.
 
     Args:
-        user_groups: List of Cognito group names from JWT cognito:groups claim.
+        user_groups: List of role names resolved from DynamoDB (e.g. ['L3-admin']).
         action_id: The action identifier (e.g. 'purge-cache').
         operation: One of 'run', 'request', 'approve'.
 

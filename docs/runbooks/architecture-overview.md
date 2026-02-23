@@ -43,16 +43,16 @@ last_reviewed: 2026-02-17
 2. Portal presents an in-app login form (no redirect to Cognito Hosted UI)
 3. User enters email + password; the portal authenticates via **SRP (Secure Remote Password)** using the Amplify Auth SDK directly against Cognito
 4. If MFA is enabled, user enters TOTP code; if first login, user sets a new password
-5. Cognito issues **JWT tokens** (access, ID, refresh) containing `cognito:groups` claim
+5. Cognito issues **JWT tokens** (access, ID, refresh)
 6. Portal stores tokens in session storage and includes the ID token in API requests
 7. **API Gateway JWT Authorizer** validates tokens against the Cognito User Pool
-8. Lambda handler extracts `cognito:groups` from the JWT to enforce RBAC
+8. Lambda handler extracts the user's email from the JWT and resolves the role from DynamoDB
 
 ## Key AWS Services
 
 | Service | Purpose | Region |
 |---|---|---|
-| **Cognito** | User authentication, RBAC groups | eu-west-2 |
+| **Cognito** | User authentication | eu-west-2 |
 | **API Gateway** | HTTP API with JWT authorization | eu-west-2 |
 | **Lambda** | CommandBridge backend (actions, KB, audit, users, activity) | eu-west-2 |
 | **DynamoDB** | Audit log, Knowledge Base, Users, Activity tracking | eu-west-2 |

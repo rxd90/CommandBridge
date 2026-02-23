@@ -16,7 +16,7 @@ const ROLE_LABELS: Record<string, string> = {
 
 export function getUserRole(user: User | null): string | null {
   if (!user) return null;
-  return user.groups[0] || null;
+  return user.role || null;
 }
 
 export function getRoleLevel(user: User | null): number {

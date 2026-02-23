@@ -20,7 +20,7 @@ vi.mock('../auth', () => ({
   getCurrentUser: () => ({
     email: 'test@example.com',
     name: 'Test User',
-    groups: ['L2-engineer'],
+    role: 'L2-engineer',
   }),
 }));
 

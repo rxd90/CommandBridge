@@ -16,7 +16,7 @@ describe('useRbac hook', () => {
 
   it('returns role, level, and label for an L1 operator', () => {
     mockUseAuth.mockReturnValue({
-      user: { email: 'op@test.com', name: 'Operator', groups: ['L1-operator'] },
+      user: { email: 'op@test.com', name: 'Operator', role: 'L1-operator' },
       loading: false,
     });
 
@@ -28,7 +28,7 @@ describe('useRbac hook', () => {
 
   it('returns role, level, and label for an L2 engineer', () => {
     mockUseAuth.mockReturnValue({
-      user: { email: 'eng@test.com', name: 'Engineer', groups: ['L2-engineer'] },
+      user: { email: 'eng@test.com', name: 'Engineer', role: 'L2-engineer' },
       loading: false,
     });
 
@@ -40,7 +40,7 @@ describe('useRbac hook', () => {
 
   it('returns role, level, and label for an L3 admin', () => {
     mockUseAuth.mockReturnValue({
-      user: { email: 'admin@test.com', name: 'Admin', groups: ['L3-admin'] },
+      user: { email: 'admin@test.com', name: 'Admin', role: 'L3-admin' },
       loading: false,
     });
 
@@ -62,9 +62,9 @@ describe('useRbac hook', () => {
     expect(result.current.label).toBe('Unknown');
   });
 
-  it('returns null role and level 0 when user has no groups', () => {
+  it('returns null role and level 0 when user has no role', () => {
     mockUseAuth.mockReturnValue({
-      user: { email: 'nogroup@test.com', name: 'No Group', groups: [] },
+      user: { email: 'nogroup@test.com', name: 'No Group', role: '' },
       loading: false,
     });
 
@@ -76,7 +76,7 @@ describe('useRbac hook', () => {
 
   it('returns level 0 and raw role string for unknown role', () => {
     mockUseAuth.mockReturnValue({
-      user: { email: 'x@test.com', name: 'Mystery', groups: ['mystery-role'] },
+      user: { email: 'x@test.com', name: 'Mystery', role: 'mystery-role' },
       loading: false,
     });
 
@@ -84,17 +84,5 @@ describe('useRbac hook', () => {
     expect(result.current.role).toBe('mystery-role');
     expect(result.current.level).toBe(0);
     expect(result.current.label).toBe('mystery-role');
-  });
-
-  it('uses only the first group as the role', () => {
-    mockUseAuth.mockReturnValue({
-      user: { email: 'multi@test.com', name: 'Multi', groups: ['L1-operator', 'L3-admin'] },
-      loading: false,
-    });
-
-    const { result } = renderHook(() => useRbac());
-    expect(result.current.role).toBe('L1-operator');
-    expect(result.current.level).toBe(1);
-    expect(result.current.label).toBe('L1 Operator');
   });
 });
