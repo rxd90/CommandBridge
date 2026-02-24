@@ -106,7 +106,7 @@ WORKDIR /home/ubuntu
 ENV DEBIAN_FRONTEND=dialog
 
 # Configure git user
-RUN git config --global user.email "ricardo@demo" \
+RUN git config --global user.email "ricardo.alvarado@gov.scot" \
     && git config --global user.name "Ricardo Alvarado"
 
 CMD ["bash"]

@@ -42,8 +42,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           name: me.name || currentUser.name,
           role: me.role,
         });
-      } catch {
+      } catch (err) {
         // If /me fails, set user with empty role (denied by RBAC checks)
+        console.warn('[AuthContext] /me failed – role unavailable:', err instanceof Error ? err.message : err);
         setUser({
           email: currentUser.email,
           name: currentUser.name,
@@ -72,7 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: me.name || currentUser.name,
         role: me.role,
       });
-    } catch {
+    } catch (err) {
+      console.warn('[AuthContext] /me refresh failed:', err instanceof Error ? err.message : err);
       setUser({
         email: currentUser.email,
         name: currentUser.name,

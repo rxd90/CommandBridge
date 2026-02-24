@@ -224,7 +224,7 @@ class TestRestartPodsExecutor:
                 'target': 'auth-service',
                 'namespace': 'default',
                 'environment': 'production',
-                'instance_ids': ['i-abc123'],
+                'instance_ids': ['i-abc12345678901234'],
             })
             assert result['status'] == 'success'
             assert 'auth-service' in result['message']
@@ -414,20 +414,20 @@ class TestToggleIdvProviderExecutor:
 
         from actions.executors.toggle_idv_provider import execute
         result = execute({
-            'target': 'provider-b',
+            'target': 'yoti',
             'param_name': '/scotaccount/idv/active-provider',
         })
         assert result['status'] == 'success'
-        assert 'provider-b' in result['message']
+        assert 'yoti' in result['message']
 
         # Verify the parameter was actually updated
         resp = ssm.get_parameter(Name='/scotaccount/idv/active-provider')
-        assert resp['Parameter']['Value'] == 'provider-b'
+        assert resp['Parameter']['Value'] == 'yoti'
 
     def test_creates_param_if_missing(self):
         from actions.executors.toggle_idv_provider import execute
         result = execute({
-            'target': 'provider-x',
+            'target': 'onfido',
             'param_name': '/scotaccount/idv/new-param',
         })
         assert result['status'] == 'success'

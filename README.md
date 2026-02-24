@@ -171,7 +171,7 @@ Users are managed through the Admin panel (`/admin`) by L3 admins: enable/disabl
 | `alice.mcgregor@gov.scot` | L1-operator | `Command@Bridge2026` |
 | `bob.fraser@gov.scot` | L1-operator | `Command@Bridge2026` |
 | `carol.stewart@gov.scot` | L2-engineer | `Command@Bridge2026` |
-| `ricardo@demo` | L3-admin | `Command@Bridge2026` |
+| `ricardo.alvarado@gov.scot` | L3-admin | `Command@Bridge2026` |
 | `stuart.mcwilliams@gov.scot` | L3-admin | `Command@Bridge2026` |
 | `laurie.brown@gov.scot` | L2-engineer | `Command@Bridge2026` |
 | `james.callaghan@gov.scot` | L1-operator | `Command@Bridge2026` |

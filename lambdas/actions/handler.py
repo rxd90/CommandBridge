@@ -34,7 +34,7 @@ def lambda_handler(event, context):
     # ID tokens have 'email'; access tokens have 'username' (which is the email
     # since the pool uses email as username). Fall back through both.
     claims = event.get('requestContext', {}).get('authorizer', {}).get('jwt', {}).get('claims', {})
-    user_email = claims.get('email') or claims.get('username') or claims.get('cognito:username', 'unknown')
+    user_email = (claims.get('email') or claims.get('username') or claims.get('cognito:username', 'unknown')).strip().lower()
 
     # Resolve role from DynamoDB (sole source of truth for authorization)
     db_role = get_user_role(user_email)

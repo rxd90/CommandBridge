@@ -47,7 +47,7 @@ export function LoginPage() {
       id_token: idToken,
       expires_at: Date.now() + 3600 * 1000,
     });
-    refreshUser();
+    await refreshUser();
     navigate('/', { replace: true });
   }
 

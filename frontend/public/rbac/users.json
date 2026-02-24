@@ -27,7 +27,7 @@
     {
       "id": "ricardo",
       "name": "Ricardo Alvarado",
-      "email": "ricardo@demo",
+      "email": "ricardo.alvarado@gov.scot",
       "role": "L3-admin",
       "team": "Platform Engineering",
       "active": true
@@ -54,6 +54,14 @@
       "email": "james.callaghan@gov.scot",
       "role": "L1-operator",
       "team": "L1 Support",
+      "active": true
+    },
+    {
+      "id": "angelo",
+      "name": "Angelo Tata",
+      "email": "angelo.tata@gov.scot",
+      "role": "L3-admin",
+      "team": "Platform Engineering",
       "active": true
     }
   ]
