@@ -1,31 +1,7 @@
 {
   "users": [
     {
-      "id": "alice",
-      "name": "Alice McGregor",
-      "email": "alice.mcgregor@gov.scot",
-      "role": "L1-operator",
-      "team": "L1 Support",
-      "active": true
-    },
-    {
-      "id": "bob",
-      "name": "Bob Fraser",
-      "email": "bob.fraser@gov.scot",
-      "role": "L1-operator",
-      "team": "L1 Support",
-      "active": true
-    },
-    {
-      "id": "carol",
-      "name": "Carol Stewart",
-      "email": "carol.stewart@gov.scot",
-      "role": "L2-engineer",
-      "team": "Identity Platform",
-      "active": true
-    },
-    {
-      "id": "ricardo",
+      "id": "ricardo.alvarado",
       "name": "Ricardo Alvarado",
       "email": "ricardo.alvarado@gov.scot",
       "role": "L3-admin",
@@ -60,6 +36,22 @@
       "id": "angelo",
       "name": "Angelo Tata",
       "email": "angelo.tata@gov.scot",
+      "role": "L3-admin",
+      "team": "Platform Engineering",
+      "active": true
+    },
+    {
+      "id": "david.mcnabb",
+      "name": "David McNabb",
+      "email": "david.mcnabb@gov.scot",
+      "role": "L3-admin",
+      "team": "Platform Engineering",
+      "active": true
+    },
+    {
+      "id": "alan.laird",
+      "name": "Alan Laird",
+      "email": "alan.laird@gov.scot",
       "role": "L3-admin",
       "team": "Platform Engineering",
       "active": true
